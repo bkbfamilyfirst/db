@@ -13,10 +13,10 @@ export function AdminProfileHeader() {
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h2 className="text-2xl font-bold">Admin Profile</h2>
+                                <h2 className="text-2xl font-bold">Distributor Profile</h2>
                                 <Shield className="h-5 w-5 text-electric-yellow" />
                             </div>
-                            <p className="mt-1 text-white/90">Manage your admin account and settings</p>
+                            <p className="mt-1 text-white/90">Manage your Distributor account and settings</p>
                         </div>
                     </div>
                     {/* <Button className="w-full bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30 md:w-auto">

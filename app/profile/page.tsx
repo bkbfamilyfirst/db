@@ -13,7 +13,7 @@ export default function AdminProfilePage() {
                 {/* Left Column - Personal Info & Settings */}
                 <div className="lg:col-span-2 space-y-6">
                     <PersonalInformation />
-                    <BasicSettings />
+                    {/* <BasicSettings /> */}
                 </div>
 
                 {/* Right Column - Admin Card */}

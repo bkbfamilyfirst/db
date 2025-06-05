@@ -43,7 +43,7 @@ export default function Header() {
                 <Image src={Logo} alt="ParentGuard Logo" width={45} height={45} />
                 {/* </div> */}
                 <span className="hidden font-bold bg-gradient-to-r from-electric-purple to-electric-blue bg-clip-text text-transparent sm:inline-block text-sm sm:text-base">
-                  Distributor Panel
+                  Distributor
                 </span>
                 <span className="font-bold bg-gradient-to-r from-electric-purple to-electric-blue bg-clip-text text-transparent sm:hidden text-sm">
                   FF Admin

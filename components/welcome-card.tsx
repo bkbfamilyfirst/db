@@ -13,10 +13,10 @@ export function WelcomeCard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold">Ready to manage your keys?</h2>
+                <h2 className="text-2xl font-bold">Distributor Control Center</h2>
                 <Sparkles className="h-5 w-5 text-electric-yellow" />
               </div>
-              <p className="mt-1 text-white/90">Check out the latest statistics and manage your key inventory.</p>
+              <p className="mt-1 text-white/90">Monitor and manage your parental control ecosystem</p>
             </div>
           </div>
           {/* <Button className="w-full bg-white/20 text-white backdrop-blur-sm border border-white/30 hover:bg-white/30 md:w-auto">

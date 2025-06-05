@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Download, TrendingUp, Package } from "lucide-react"
+import { Key, TrendingUp, Package } from "lucide-react"
 
 export function ReceivedKeysCard() {
   return (
@@ -8,7 +8,7 @@ export function ReceivedKeysCard() {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Received Keys</CardTitle>
         <div className="rounded-full p-3 bg-gradient-to-r from-electric-purple to-electric-blue shadow-lg">
-          <Download className="h-5 w-5 text-white" />
+          <Key className="h-5 w-5 text-white" />
         </div>
       </CardHeader>
       <CardContent>

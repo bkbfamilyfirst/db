@@ -15,7 +15,10 @@ export function RetailerManagement() {
   const [filterStatus, setFilterStatus] = useState("all")
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">
+      {/* Activation Summary */}
+      <RetailerActivationSummary />
+
       {/* Header Actions */}
       <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
         <CardHeader>
@@ -76,11 +79,10 @@ export function RetailerManagement() {
         </CardContent>
       </Card>
 
-      {/* Activation Summary */}
-      <RetailerActivationSummary />
-
       {/* Retailer List */}
       <RetailerList searchTerm={searchTerm} filterStatus={filterStatus} />
+
+
 
       {/* Add Retailer Dialog */}
       <AddRetailerDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
