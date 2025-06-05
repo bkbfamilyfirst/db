@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { Send, Users, CheckCircle, Clock, Package, Plus } from "lucide-react"
 
 interface Distribution {
@@ -52,6 +53,36 @@ const mockDistributions: Distribution[] = [
     batchNumber: "SS-2024-002",
     region: "East",
   },
+  {
+    id: "4",
+    retailerName: "Cyber Solutions Chennai",
+    retailerId: "RET-004",
+    quantity: 320,
+    distributedDate: "2024-01-23",
+    status: "pending",
+    batchNumber: "SS-2024-002",
+    region: "South",
+  },
+  {
+    id: "5",
+    retailerName: "Future Tech Bangalore",
+    retailerId: "RET-005",
+    quantity: 680,
+    distributedDate: "2024-01-24",
+    status: "confirmed",
+    batchNumber: "SS-2024-003",
+    region: "South",
+  },
+  {
+    id: "6",
+    retailerName: "Digital World Pune",
+    retailerId: "RET-006",
+    quantity: 450,
+    distributedDate: "2024-01-25",
+    status: "delivered",
+    batchNumber: "SS-2024-003",
+    region: "West",
+  },
 ]
 
 const mockRetailers = [
@@ -64,11 +95,19 @@ const mockRetailers = [
 export function DistributeKeysSection() {
   const [distributions, setDistributions] = useState<Distribution[]>(mockDistributions)
   const [isDistributing, setIsDistributing] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(4)
   const [newDistribution, setNewDistribution] = useState({
     retailerId: "",
     quantity: "",
     batchNumber: "",
   })
+
+  // Calculate pagination
+  const totalPages = Math.ceil(distributions.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentDistributions = distributions.slice(startIndex, endIndex)
 
   const handleDistribute = () => {
     if (!newDistribution.retailerId || !newDistribution.quantity || !newDistribution.batchNumber) return
@@ -90,6 +129,7 @@ export function DistributeKeysSection() {
     setDistributions([distribution, ...distributions])
     setNewDistribution({ retailerId: "", quantity: "", batchNumber: "" })
     setIsDistributing(false)
+    setCurrentPage(1) // Reset to first page when adding new distribution
   }
 
   const handleStatusUpdate = (distributionId: string, newStatus: Distribution["status"]) => {
@@ -240,7 +280,7 @@ export function DistributeKeysSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {distributions.map((distribution) => (
+                {currentDistributions.map((distribution) => (
                   <TableRow key={distribution.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                     <TableCell>
                       <div>
@@ -307,6 +347,14 @@ export function DistributeKeysSection() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Custom Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-6"
+          />
         </CardContent>
       </Card>
     </div>

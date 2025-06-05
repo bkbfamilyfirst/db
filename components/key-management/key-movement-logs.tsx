@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { History, Search, Download, Send, Package, Calendar } from "lucide-react"
 
 interface MovementLog {
@@ -81,6 +82,41 @@ const mockLogs: MovementLog[] = [
     status: "completed",
     reference: "TRF-012",
   },
+  {
+    id: "6",
+    timestamp: "2024-01-23T09:45:00Z",
+    type: "receive",
+    description: "Received keys from SS",
+    quantity: 1800,
+    from: "SS Central",
+    to: "Main Inventory",
+    batchNumber: "SS-2024-002",
+    status: "completed",
+    reference: "REC-002",
+  },
+  {
+    id: "7",
+    timestamp: "2024-01-22T15:20:00Z",
+    type: "distribute",
+    description: "Distributed keys to retailer",
+    quantity: 320,
+    from: "Main Inventory",
+    to: "Cyber Solutions Chennai",
+    batchNumber: "SS-2024-001",
+    status: "failed",
+    reference: "DIST-043",
+  },
+  {
+    id: "8",
+    timestamp: "2024-01-22T13:10:00Z",
+    type: "activate",
+    description: "Keys activated by retailer",
+    quantity: 89,
+    from: "Tech Store Mumbai",
+    to: "End Customer",
+    status: "completed",
+    reference: "ACT-788",
+  },
 ]
 
 export function KeyMovementLogs() {
@@ -88,6 +124,8 @@ export function KeyMovementLogs() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
 
   const filteredLogs = logs.filter((log) => {
     const matchesSearch =
@@ -101,6 +139,18 @@ export function KeyMovementLogs() {
 
     return matchesSearch && matchesType && matchesStatus
   })
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentLogs = filteredLogs.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  const handleFilterChange = (filterFn: () => void) => {
+    filterFn()
+    setCurrentPage(1)
+  }
 
   const getTypeIcon = (type: MovementLog["type"]) => {
     switch (type) {
@@ -182,12 +232,12 @@ export function KeyMovementLogs() {
               <Input
                 placeholder="Search logs..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleFilterChange(() => setSearchTerm(e.target.value))}
                 className="pl-10"
               />
             </div>
             <div className="flex gap-2">
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select value={filterType} onValueChange={(value) => handleFilterChange(() => setFilterType(value))}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
@@ -199,7 +249,7 @@ export function KeyMovementLogs() {
                   <SelectItem value="activate">Activate</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select value={filterStatus} onValueChange={(value) => handleFilterChange(() => setFilterStatus(value))}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -242,7 +292,7 @@ export function KeyMovementLogs() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLogs.map((log) => (
+                {currentLogs.map((log) => (
                   <TableRow key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                     <TableCell>
                       <div className="text-sm">
@@ -292,6 +342,14 @@ export function KeyMovementLogs() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Custom Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-6"
+          />
         </CardContent>
       </Card>
     </div>

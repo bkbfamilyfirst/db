@@ -12,7 +12,7 @@ export default function RetailerHeaderCard() {
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold"> Manage Retailers</h2>
-                            <p className="mt-0 text-white/90 text-md">  Add, edit, and manage retailer accounts, assign keys, and monitor activations</p>
+                            <p className="mt-0 text-white/90 text-md"> Overview of your Retailers network</p>
                         </div>
                     </div>
                     {/* Optional button can go here */}

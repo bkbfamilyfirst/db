@@ -1,12 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Key, Shield, ShieldOff, Trash2, Store, Phone, Mail } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  MoreHorizontal,
+  Edit,
+  Key,
+  Shield,
+  ShieldOff,
+  Trash2,
+  Store,
+  Phone,
+  Mail,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react"
 import { EditRetailerDialog } from "./edit-retailer-dialog"
 import { AssignKeysDialog } from "./assign-keys-dialog"
 
@@ -67,6 +82,50 @@ const mockRetailers: Retailer[] = [
     activations: 398,
     joinDate: "2024-01-28",
   },
+  {
+    id: "5",
+    name: "Future Tech Bangalore",
+    email: "contact@futuretech.com",
+    phone: "+91 54321 09876",
+    region: "South",
+    status: "active",
+    keysAssigned: 600,
+    activations: 567,
+    joinDate: "2024-02-05",
+  },
+  {
+    id: "6",
+    name: "Digital World Pune",
+    email: "info@digitalworld.com",
+    phone: "+91 43210 98765",
+    region: "West",
+    status: "active",
+    keysAssigned: 350,
+    activations: 298,
+    joinDate: "2024-03-15",
+  },
+  {
+    id: "7",
+    name: "Tech Solutions Hyderabad",
+    email: "sales@techsolutions.com",
+    phone: "+91 32109 87654",
+    region: "South",
+    status: "blocked",
+    keysAssigned: 200,
+    activations: 89,
+    joinDate: "2024-01-20",
+  },
+  {
+    id: "8",
+    name: "Cyber Hub Ahmedabad",
+    email: "hello@cyberhub.com",
+    phone: "+91 21098 76543",
+    region: "West",
+    status: "active",
+    keysAssigned: 475,
+    activations: 445,
+    joinDate: "2024-02-28",
+  },
 ]
 
 interface RetailerListProps {
@@ -79,6 +138,10 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
   const [editingRetailer, setEditingRetailer] = useState<Retailer | null>(null)
   const [assigningKeysRetailer, setAssigningKeysRetailer] = useState<Retailer | null>(null)
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+
   const filteredRetailers = retailers.filter((retailer) => {
     const matchesSearch =
       retailer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,6 +152,18 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
 
     return matchesSearch && matchesFilter
   })
+
+  // Pagination calculations
+  const totalItems = filteredRetailers.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentRetailers = filteredRetailers.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, filterStatus])
 
   const handleStatusToggle = (retailerId: string) => {
     setRetailers((prev) =>
@@ -116,6 +191,15 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
     )
   }
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(Number(value))
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
+
   return (
     <>
       <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -125,7 +209,7 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
               <Store className="h-5 w-5 text-white" />
             </div>
             <span className="bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
-              Retailer Directory ({filteredRetailers.length})
+              Retailer Directory ({totalItems})
             </span>
           </CardTitle>
         </CardHeader>
@@ -144,7 +228,7 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredRetailers.map((retailer) => (
+                {currentRetailers.map((retailer) => (
                   <TableRow key={retailer.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                     <TableCell>
                       <div>
@@ -238,6 +322,77 @@ export function RetailerList({ searchTerm, filterStatus }: RetailerListProps) {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-2 py-4">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Rows per page</p>
+                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger className="h-8 w-[70px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent side="top">
+                    {[5, 10, 20, 30, 50].map((pageSize) => (
+                      <SelectItem key={pageSize} value={pageSize.toString()}>
+                        {pageSize}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-6 lg:space-x-8">
+                <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    className="hidden h-8 w-8 p-0 lg:flex"
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                  >
+                    <span className="sr-only">Go to first page</span>
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <span className="sr-only">Go to previous page</span>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <span className="sr-only">Go to next page</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="hidden h-8 w-8 p-0 lg:flex"
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <span className="sr-only">Go to last page</span>
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+                </p>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

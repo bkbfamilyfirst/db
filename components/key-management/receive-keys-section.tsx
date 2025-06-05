@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { Download, Package, CheckCircle, Clock, AlertCircle, Plus } from "lucide-react"
 
 interface KeyBatch {
@@ -47,17 +48,50 @@ const mockBatches: KeyBatch[] = [
     ssReference: "REF-SS-003",
     notes: "Urgent delivery required",
   },
+  {
+    id: "4",
+    batchNumber: "SS-2024-004",
+    quantity: 1500,
+    receivedDate: "2024-01-26",
+    status: "received",
+    ssReference: "REF-SS-004",
+  },
+  {
+    id: "5",
+    batchNumber: "SS-2024-005",
+    quantity: 2200,
+    receivedDate: "2024-01-27",
+    status: "pending",
+    ssReference: "REF-SS-005",
+    notes: "Express delivery",
+  },
+  {
+    id: "6",
+    batchNumber: "SS-2024-006",
+    quantity: 1900,
+    receivedDate: "2024-01-28",
+    status: "verified",
+    ssReference: "REF-SS-006",
+  },
 ]
 
 export function ReceiveKeysSection() {
   const [batches, setBatches] = useState<KeyBatch[]>(mockBatches)
   const [isAddingBatch, setIsAddingBatch] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(3)
   const [newBatch, setNewBatch] = useState({
     batchNumber: "",
     quantity: "",
     ssReference: "",
     notes: "",
   })
+
+  // Calculate pagination
+  const totalPages = Math.ceil(batches.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentBatches = batches.slice(startIndex, endIndex)
 
   const handleAddBatch = () => {
     if (!newBatch.batchNumber || !newBatch.quantity || !newBatch.ssReference) return
@@ -75,6 +109,7 @@ export function ReceiveKeysSection() {
     setBatches([batch, ...batches])
     setNewBatch({ batchNumber: "", quantity: "", ssReference: "", notes: "" })
     setIsAddingBatch(false)
+    setCurrentPage(1) // Reset to first page when adding new batch
   }
 
   const handleStatusUpdate = (batchId: string, newStatus: KeyBatch["status"]) => {
@@ -214,7 +249,7 @@ export function ReceiveKeysSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {batches.map((batch) => (
+                {currentBatches.map((batch) => (
                   <TableRow key={batch.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
                     <TableCell>
                       <div>
@@ -259,6 +294,14 @@ export function ReceiveKeysSection() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Custom Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            className="mt-6"
+          />
         </CardContent>
       </Card>
     </div>
