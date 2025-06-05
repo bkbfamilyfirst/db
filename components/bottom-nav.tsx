@@ -3,13 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import {
-  BarChart3,
-  LayoutDashboard,
-  Network,
-  Settings,
-  User,
-} from "lucide-react"
+import { LayoutDashboard, Network, User, Key } from "lucide-react"
 
 const navItems = [
   {
@@ -22,14 +16,14 @@ const navItems = [
   {
     name: "Manage Retailers",
     icon: Network,
-    href: "/distributors",
+    href: "/manage-retailer",
     shortName: "Retailers",
     color: "from-electric-cyan to-electric-purple",
   },
   {
     name: "Key Management",
-    icon: BarChart3,
-    href: "/reports",
+    icon: Key,
+    href: "/key-management",
     shortName: "Keys",
     color: "from-electric-orange to-electric-pink",
   },
@@ -40,13 +34,6 @@ const navItems = [
     shortName: "Profile",
     color: "from-electric-green to-electric-blue",
   },
-  // {
-  //   name: "Settings",
-  //   icon: Settings,
-  //   href: "/settings",
-  //   shortName: "Settings",
-  //   color: "from-electric-pink to-electric-purple",
-  // },
 ]
 
 export default function BottomNav() {
