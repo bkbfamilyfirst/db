@@ -31,12 +31,12 @@ export function KeyManagement() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="receive" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2">
+              {/* <TabsTrigger value="receive" className="flex items-center gap-2">
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Receive Keys</span>
                 <span className="sm:hidden">Receive</span>
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="distribute" className="flex items-center gap-2">
                 <Send className="h-4 w-4" />
                 <span className="hidden sm:inline">Distribute Keys</span>

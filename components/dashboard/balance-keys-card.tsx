@@ -2,11 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Wallet, AlertTriangle, CheckCircle } from "lucide-react"
 
-export function BalanceKeysCard() {
-  const totalBalance = 15420
-  const allocated = 8945
-  const available = totalBalance - allocated
-  const allocationPercentage = (allocated / totalBalance) * 100
+interface BalanceKeysCardProps {
+  data?: {
+    totalBalance: number;
+    allocated: number;
+    available: number;
+    allocationStatus: number;
+  };
+}
+
+export function BalanceKeysCard({ data }: BalanceKeysCardProps) {
+  const totalBalance = data?.totalBalance || 0
+  const allocated = data?.allocated || 0
+  const available = data?.available || 0
+  const allocationPercentage = data?.allocationStatus || 0
 
   return (
     <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-electric-cyan/10 to-electric-green/10 hover:shadow-xl transition-all duration-300 hover:scale-105">

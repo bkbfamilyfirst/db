@@ -2,8 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { Search, Shield, Bell, X } from "lucide-react"
+import { Search, Shield, Bell, X, LogOut } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,11 +18,11 @@ import {
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import Logo from '../assets/icons/Logo.svg'
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showMobileSearch, setShowMobileSearch] = useState(false)
+  const { user, logout } = useAuth()
 
   const handleMobileSearch = () => {
     setShowMobileSearch(!showMobileSearch)
@@ -30,18 +31,33 @@ export default function Header() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
+  }
+
+  const getUserInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
   return (
     <>
       <header className="header-responsive w-full border-b border-white/20 bg-white/80 backdrop-blur-md dark:bg-gray-900/80 safe-area-top">
         <div className="responsive-container">
           <div className="flex h-14 sm:h-16 items-center justify-between">
             {/* Logo Section */}
-            <div className="flex items-center gap-3 sm:gap-6">
-              <Link href="/" className="flex items-center gap-2">
-                {/* <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-md bg-gradient-to-r from-electric-purple to-electric-blue"> */}
-                {/* <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-white" /> */}
-                <Image src={Logo} alt="ParentGuard Logo" width={45} height={45} />
-                {/* </div> */}
+            <div className="flex items-center gap-3 sm:gap-6">              <Link href="/" className="flex items-center gap-2">
+                <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-md bg-gradient-to-r from-electric-purple to-electric-blue">
+                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
                 <span className="hidden font-bold bg-gradient-to-r from-electric-purple to-electric-blue bg-clip-text text-transparent sm:inline-block text-sm sm:text-base">
                   Distributor
                 </span>
@@ -94,16 +110,14 @@ export default function Header() {
               </Button> */}
 
               {/* Theme Toggle */}
-              <ModeToggle />
-
-              {/* Profile Dropdown */}
+              <ModeToggle />              {/* Profile Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-7 w-7 sm:h-8 sm:w-8 rounded-full">
                     <Avatar className="h-7 w-7 sm:h-8 sm:w-8 ring-2 ring-electric-purple/30">
-                      <AvatarImage src="/placeholder-user.jpg" alt="Admin" />
+                      <AvatarImage src="/placeholder-user.jpg" alt={user?.name || 'User'} />
                       <AvatarFallback className="bg-gradient-to-r from-electric-pink to-electric-purple text-white text-xs sm:text-sm">
-                        AD
+                        {user?.name ? getUserInitials(user.name) : 'DB'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -111,18 +125,19 @@ export default function Header() {
                 <DropdownMenuContent className="w-48 sm:w-56 z-[100]" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">Admin User</p>
-                      <p className="text-xs leading-none text-muted-foreground">admin@parentguard.com</p>
+                      <p className="text-sm font-medium leading-none">{user?.name || 'Distributor'}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="text-sm">
-                    <Link href="/profile">Admin Profile</Link>
+                    <Link href="/profile">Distributor Profile</Link>
                   </DropdownMenuItem>
-                  {/* <DropdownMenuItem className="text-sm">System Settings</DropdownMenuItem> */}
-                  {/* <DropdownMenuItem className="text-sm">Security Logs</DropdownMenuItem> */}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-sm">Sign Out</DropdownMenuItem>
+                  <DropdownMenuItem className="text-sm text-red-600 focus:text-red-600" onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

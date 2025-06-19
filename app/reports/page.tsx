@@ -2,6 +2,7 @@ import { ReportsHeader } from "@/components/reports/reports-header"
 import { ReportsStats } from "@/components/reports/reports-stats"
 import { KeyTransferLogs } from "@/components/reports/key-transfer-logs"
 import { ReportsFilters } from "@/components/reports/reports-filters"
+import DistributionHistoryTable from "@/components/reports/distribution-history"
 
 export default function ReportsPage() {
   return (
@@ -21,6 +22,11 @@ export default function ReportsPage() {
       {/* Key Transfer Logs */}
       <div className="mt-8">
         <KeyTransferLogs />
+      </div>
+
+      {/* Distribution History */}
+      <div className="mt-8">
+        <DistributionHistoryTable />
       </div>
     </div>
   )

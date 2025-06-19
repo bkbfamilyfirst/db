@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,142 +9,45 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Pagination } from "@/components/ui/pagination"
 import { History, Search, Download, Send, Package, Calendar } from "lucide-react"
-
-interface MovementLog {
-  id: string
-  timestamp: string
-  type: "receive" | "distribute" | "transfer" | "activate"
-  description: string
-  quantity: number
-  from: string
-  to: string
-  batchNumber?: string
-  status: "completed" | "pending" | "failed"
-  reference: string
-}
-
-const mockLogs: MovementLog[] = [
-  {
-    id: "1",
-    timestamp: "2024-01-25T10:30:00Z",
-    type: "receive",
-    description: "Received keys from SS",
-    quantity: 3200,
-    from: "SS Central",
-    to: "Main Inventory",
-    batchNumber: "SS-2024-003",
-    status: "completed",
-    reference: "REC-001",
-  },
-  {
-    id: "2",
-    timestamp: "2024-01-25T09:15:00Z",
-    type: "distribute",
-    description: "Distributed keys to retailer",
-    quantity: 425,
-    from: "Main Inventory",
-    to: "Smart Electronics Kolkata",
-    batchNumber: "SS-2024-002",
-    status: "completed",
-    reference: "DIST-045",
-  },
-  {
-    id: "3",
-    timestamp: "2024-01-24T16:45:00Z",
-    type: "activate",
-    description: "Keys activated by retailer",
-    quantity: 156,
-    from: "Smart Electronics Kolkata",
-    to: "End Customer",
-    status: "completed",
-    reference: "ACT-789",
-  },
-  {
-    id: "4",
-    timestamp: "2024-01-24T14:20:00Z",
-    type: "distribute",
-    description: "Distributed keys to retailer",
-    quantity: 750,
-    from: "Main Inventory",
-    to: "Digital Hub Delhi",
-    batchNumber: "SS-2024-001",
-    status: "pending",
-    reference: "DIST-044",
-  },
-  {
-    id: "5",
-    timestamp: "2024-01-23T11:30:00Z",
-    type: "transfer",
-    description: "Internal transfer between warehouses",
-    quantity: 200,
-    from: "Warehouse A",
-    to: "Warehouse B",
-    status: "completed",
-    reference: "TRF-012",
-  },
-  {
-    id: "6",
-    timestamp: "2024-01-23T09:45:00Z",
-    type: "receive",
-    description: "Received keys from SS",
-    quantity: 1800,
-    from: "SS Central",
-    to: "Main Inventory",
-    batchNumber: "SS-2024-002",
-    status: "completed",
-    reference: "REC-002",
-  },
-  {
-    id: "7",
-    timestamp: "2024-01-22T15:20:00Z",
-    type: "distribute",
-    description: "Distributed keys to retailer",
-    quantity: 320,
-    from: "Main Inventory",
-    to: "Cyber Solutions Chennai",
-    batchNumber: "SS-2024-001",
-    status: "failed",
-    reference: "DIST-043",
-  },
-  {
-    id: "8",
-    timestamp: "2024-01-22T13:10:00Z",
-    type: "activate",
-    description: "Keys activated by retailer",
-    quantity: 89,
-    from: "Tech Store Mumbai",
-    to: "End Customer",
-    status: "completed",
-    reference: "ACT-788",
-  },
-]
+import { getKeyTransferLogs } from "../../lib/api"
+import type { KeyTransferLog } from "../../lib/api"
 
 export function KeyMovementLogs() {
-  const [logs, setLogs] = useState<MovementLog[]>(mockLogs)
+  const [logs, setLogs] = useState<KeyTransferLog[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterType, setFilterType] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
+  const [totalLogs, setTotalLogs] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const filteredLogs = logs.filter((log) => {
-    const matchesSearch =
-      log.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.to.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.reference.toLowerCase().includes(searchTerm.toLowerCase())
+  useEffect(() => {
+    const fetchLogs = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const params: any = {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: searchTerm,
+          status: filterStatus === "all" ? undefined : filterStatus,
+          type: filterType === "all" ? undefined : filterType,
+        }
+        const response = await getKeyTransferLogs(params)
+        setLogs(response.logs)
+        setTotalLogs(response.total)
+      } catch (err) {
+        setError("Failed to fetch movement logs.")
+      }
+      setLoading(false)
+    }
 
-    const matchesType = filterType === "all" || log.type === filterType
-    const matchesStatus = filterStatus === "all" || log.status === filterStatus
+    fetchLogs()
+  }, [currentPage, itemsPerPage, searchTerm, filterStatus, filterType])
 
-    return matchesSearch && matchesType && matchesStatus
-  })
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const currentLogs = filteredLogs.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(totalLogs / itemsPerPage)
 
   // Reset to first page when filters change
   const handleFilterChange = (filterFn: () => void) => {
@@ -152,7 +55,7 @@ export function KeyMovementLogs() {
     setCurrentPage(1)
   }
 
-  const getTypeIcon = (type: MovementLog["type"]) => {
+  const getTypeIcon = (type: KeyTransferLog["type"]) => {
     switch (type) {
       case "receive":
         return <Download className="h-4 w-4" />
@@ -167,7 +70,7 @@ export function KeyMovementLogs() {
     }
   }
 
-  const getTypeColor = (type: MovementLog["type"]) => {
+  const getTypeColor = (type: KeyTransferLog["type"]) => {
     switch (type) {
       case "receive":
         return "bg-gradient-to-r from-electric-green to-electric-cyan text-white"
@@ -182,7 +85,7 @@ export function KeyMovementLogs() {
     }
   }
 
-  const getStatusColor = (status: MovementLog["status"]) => {
+  const getStatusColor = (status: KeyTransferLog["status"]) => {
     switch (status) {
       case "completed":
         return "bg-gradient-to-r from-electric-green to-electric-cyan text-white"
@@ -197,7 +100,7 @@ export function KeyMovementLogs() {
 
   const exportLogs = () => {
     // This would typically export to CSV or PDF
-    console.log("Exporting logs:", filteredLogs)
+    console.log("Exporting logs:", logs)
   }
 
   return (
@@ -273,7 +176,7 @@ export function KeyMovementLogs() {
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <span className="bg-gradient-to-r from-electric-orange to-electric-pink bg-clip-text text-transparent">
-              Movement History ({filteredLogs.length} records)
+              Movement History ({totalLogs} records)
             </span>
           </CardTitle>
         </CardHeader>
@@ -292,53 +195,80 @@ export function KeyMovementLogs() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentLogs.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
-                    <TableCell>
-                      <div className="text-sm">
-                        <div>{new Date(log.timestamp).toLocaleDateString()}</div>
-                        <div className="text-muted-foreground">{new Date(log.timestamp).toLocaleTimeString()}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getTypeColor(log.type)}>
-                        {getTypeIcon(log.type)}
-                        <span className="ml-1 capitalize">{log.type}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{log.description}</div>
-                        {log.batchNumber && (
-                          <div className="text-sm text-muted-foreground">Batch: {log.batchNumber}</div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        <div className="font-medium">{log.quantity.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">keys</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">{log.from}</div>
-                        <div className="text-muted-foreground">↓</div>
-                        <div className="font-medium">{log.to}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-gradient-to-r from-electric-blue/10 to-electric-purple/10">
-                        {log.reference}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(log.status)}>
-                        <span className="capitalize">{log.status}</span>
-                      </Badge>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      Loading...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center text-red-500">
+                      {error}
+                    </TableCell>
+                  </TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      No movement logs found.
+                    </TableCell>
+                  </TableRow>
+                ) : (                  logs.map((log, index) => {
+                    const isValidDate = log.date && !isNaN(new Date(log.date).getTime());
+                    // Use a unique key combination to avoid React warnings
+                    const uniqueKey = log._id || log.transferId || `log-${index}-${log.date || Date.now()}`;
+                    return (
+                      <TableRow key={uniqueKey} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                        <TableCell>
+                          <div className="text-sm">
+                            {isValidDate ? (
+                              <>
+                                <div>{new Date(log.date).toLocaleDateString()}</div>
+                                <div className="text-muted-foreground">{new Date(log.date).toLocaleTimeString()}</div>
+                              </>
+                            ) : (
+                              <div>Invalid Date</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getTypeColor(log.type)}>
+                            {getTypeIcon(log.type)}
+                            <span className="ml-1 capitalize">{log.type || 'N/A'}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{log.notes || '-'}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-center">
+                            <div className="font-medium">{log.count ? log.count.toLocaleString() : '0'}</div>
+                            <div className="text-xs text-muted-foreground">keys</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">{log.fromUser?.name || 'System'}</div>
+                            <div className="text-muted-foreground">↓</div>
+                            <div className="font-medium">{log.toUser?.name || 'System'}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-gradient-to-r from-electric-blue/10 to-electric-purple/10">
+                            {log.transferId || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(log.status)}>
+                            <span className="capitalize">{log.status || 'Unknown'}</span>
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
               </TableBody>
             </Table>
           </div>

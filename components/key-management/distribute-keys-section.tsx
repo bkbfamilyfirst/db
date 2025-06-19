@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,100 +8,63 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Pagination } from "@/components/ui/pagination"
-import { Send, Users, CheckCircle, Clock, Package, Plus } from "lucide-react"
+import { Pagination } from "@/components/ui/pagination" // Corrected import
+import { Send, Users, CheckCircle, Clock, Package, Plus, Loader2 } from "lucide-react"
+import { 
+  getDistributions, 
+  createDistribution, 
+  updateDistributionStatus, 
+  getRetailers, // This now returns RetailerSelectionInfo[]
+  Distribution, 
+  RetailerSelectionInfo, // Use this type for the retailers dropdown
+  CreateDistributionData, 
+  handleApiError 
+} from "@/lib/api"
+import { useToast } from "@/hooks/use-toast" // For showing notifications
 
-interface Distribution {
-  id: string
-  retailerName: string
-  retailerId: string
-  quantity: number
-  distributedDate: string
-  status: "pending" | "sent" | "delivered" | "confirmed"
-  batchNumber: string
-  region: string
-}
+// Interface for Distribution is already in api.ts, no need to redefine
 
-const mockDistributions: Distribution[] = [
-  {
-    id: "1",
-    retailerName: "Tech Store Mumbai",
-    retailerId: "RET-001",
-    quantity: 500,
-    distributedDate: "2024-01-15",
-    status: "confirmed",
-    batchNumber: "SS-2024-001",
-    region: "West",
-  },
-  {
-    id: "2",
-    retailerName: "Digital Hub Delhi",
-    retailerId: "RET-002",
-    quantity: 750,
-    distributedDate: "2024-01-20",
-    status: "delivered",
-    batchNumber: "SS-2024-001",
-    region: "North",
-  },
-  {
-    id: "3",
-    retailerName: "Smart Electronics Kolkata",
-    retailerId: "RET-003",
-    quantity: 425,
-    distributedDate: "2024-01-22",
-    status: "sent",
-    batchNumber: "SS-2024-002",
-    region: "East",
-  },
-  {
-    id: "4",
-    retailerName: "Cyber Solutions Chennai",
-    retailerId: "RET-004",
-    quantity: 320,
-    distributedDate: "2024-01-23",
-    status: "pending",
-    batchNumber: "SS-2024-002",
-    region: "South",
-  },
-  {
-    id: "5",
-    retailerName: "Future Tech Bangalore",
-    retailerId: "RET-005",
-    quantity: 680,
-    distributedDate: "2024-01-24",
-    status: "confirmed",
-    batchNumber: "SS-2024-003",
-    region: "South",
-  },
-  {
-    id: "6",
-    retailerName: "Digital World Pune",
-    retailerId: "RET-006",
-    quantity: 450,
-    distributedDate: "2024-01-25",
-    status: "delivered",
-    batchNumber: "SS-2024-003",
-    region: "West",
-  },
-]
-
-const mockRetailers = [
-  { id: "RET-001", name: "Tech Store Mumbai", region: "West" },
-  { id: "RET-002", name: "Digital Hub Delhi", region: "North" },
-  { id: "RET-003", name: "Smart Electronics Kolkata", region: "East" },
-  { id: "RET-004", name: "Cyber Solutions Chennai", region: "South" },
-]
+// Mock retailers are removed, will fetch from API
 
 export function DistributeKeysSection() {
-  const [distributions, setDistributions] = useState<Distribution[]>(mockDistributions)
-  const [isDistributing, setIsDistributing] = useState(false)
+  const [distributions, setDistributions] = useState<Distribution[]>([])
+  const [retailers, setRetailers] = useState<RetailerSelectionInfo[]>([]) // Changed type here
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDistributingFormVisible, setIsDistributingFormVisible] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(4)
-  const [newDistribution, setNewDistribution] = useState({
+  const [itemsPerPage] = useState(5) // Adjusted items per page
+  const [newDistribution, setNewDistribution] = useState<Omit<CreateDistributionData, 'quantity'> & { quantity: string }>({
     retailerId: "",
     quantity: "",
     batchNumber: "",
   })
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true)
+      try {
+        const [distData, retData] = await Promise.all([
+          getDistributions(),
+          getRetailers(), // retData is RetailerSelectionInfo[]
+        ])
+        setDistributions(distData.sort((a, b) => new Date(b.distributedDate).getTime() - new Date(a.distributedDate).getTime()))
+        setRetailers(Array.isArray(retData) ? retData : []) // Ensure retData is an array
+      } catch (error) {
+        handleApiError(error)
+        toast({
+          title: "Error fetching data",
+          description: "Could not load distributions or retailers.",
+          variant: "destructive",
+        })
+        setRetailers([]) // Explicitly clear retailers on error
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchData()
+  }, [toast])
 
   // Calculate pagination
   const totalPages = Math.ceil(distributions.length / itemsPerPage)
@@ -109,31 +72,57 @@ export function DistributeKeysSection() {
   const endIndex = startIndex + itemsPerPage
   const currentDistributions = distributions.slice(startIndex, endIndex)
 
-  const handleDistribute = () => {
-    if (!newDistribution.retailerId || !newDistribution.quantity || !newDistribution.batchNumber) return
-
-    const retailer = mockRetailers.find((r) => r.id === newDistribution.retailerId)
-    if (!retailer) return
-
-    const distribution: Distribution = {
-      id: Date.now().toString(),
-      retailerName: retailer.name,
-      retailerId: newDistribution.retailerId,
-      quantity: Number.parseInt(newDistribution.quantity),
-      distributedDate: new Date().toISOString().split("T")[0],
-      status: "pending",
-      batchNumber: newDistribution.batchNumber,
-      region: retailer.region,
+  const handleDistribute = async () => {
+    if (!newDistribution.retailerId || !newDistribution.quantity || !newDistribution.batchNumber) {
+      toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" })
+      return
+    }
+    if (isNaN(parseInt(newDistribution.quantity)) || parseInt(newDistribution.quantity) <= 0) {
+        toast({ title: "Invalid Quantity", description: "Quantity must be a positive number.", variant: "destructive" });
+        return;
     }
 
-    setDistributions([distribution, ...distributions])
-    setNewDistribution({ retailerId: "", quantity: "", batchNumber: "" })
-    setIsDistributing(false)
-    setCurrentPage(1) // Reset to first page when adding new distribution
+    setIsSubmitting(true)
+    try {
+      const distributionData: CreateDistributionData = {
+        ...newDistribution,
+        quantity: parseInt(newDistribution.quantity),
+      }
+      const created = await createDistribution(distributionData)
+      
+      const retailer = retailers.find(r => r.id === created.retailerId); // Use .id from RetailerSelectionInfo
+      const newDistWithDetails: Distribution = {
+        ...created,
+        retailerName: retailer?.name || 'N/A', 
+        region: retailer?.region || 'N/A', // Use .region from RetailerSelectionInfo
+      };
+
+      setDistributions(prev => [newDistWithDetails, ...prev].sort((a, b) => new Date(b.distributedDate).getTime() - new Date(a.distributedDate).getTime()))
+      setNewDistribution({ retailerId: "", quantity: "", batchNumber: "" })
+      setIsDistributingFormVisible(false)
+      setCurrentPage(1)
+      toast({ title: "Success", description: "Keys distributed successfully." })
+    } catch (error) {
+      handleApiError(error)
+      toast({ title: "Error", description: "Failed to distribute keys.", variant: "destructive" })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleStatusUpdate = (distributionId: string, newStatus: Distribution["status"]) => {
+  const handleStatusUpdate = async (distributionId: string, newStatus: Distribution["status"]) => {
+    // Optimistic update
+    const originalDistributions = [...distributions];
     setDistributions((prev) => prev.map((dist) => (dist.id === distributionId ? { ...dist, status: newStatus } : dist)))
+    try {
+      await updateDistributionStatus(distributionId, newStatus)
+      toast({ title: "Status Updated", description: `Distribution status changed to ${newStatus}.` })
+    } catch (error) {
+      // Revert on error
+      setDistributions(originalDistributions);
+      handleApiError(error)
+      toast({ title: "Error updating status", description: "Failed to update distribution status.", variant: "destructive" })
+    }
   }
 
   const getStatusIcon = (status: Distribution["status"]) => {
@@ -166,6 +155,15 @@ export function DistributeKeysSection() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-electric-pink" />
+        <p className="ml-2">Loading distributions...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Distribute Keys Form */}
@@ -181,33 +179,40 @@ export function DistributeKeysSection() {
               </span>
             </div>
             <Button
-              onClick={() => setIsDistributing(!isDistributing)}
+              onClick={() => setIsDistributingFormVisible(!isDistributingFormVisible)}
               size="sm"
               className="bg-gradient-to-r from-electric-orange to-electric-pink hover:from-electric-orange/80 hover:to-electric-pink/80 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
-              New Distribution
+              {isDistributingFormVisible ? "Cancel" : "New Distribution"}
             </Button>
           </CardTitle>
         </CardHeader>
-        {isDistributing && (
+        {isDistributingFormVisible && (
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="space-y-2">
                 <Label htmlFor="retailer">Select Retailer</Label>
                 <Select
                   value={newDistribution.retailerId}
                   onValueChange={(value) => setNewDistribution({ ...newDistribution, retailerId: value })}
+                  disabled={isSubmitting || isLoading} // Also disable if loading retailers
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose retailer" />
+                  <SelectTrigger id="retailer">
+                    <SelectValue placeholder="Select a retailer" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockRetailers.map((retailer) => (
-                      <SelectItem key={retailer.id} value={retailer.id}>
-                        {retailer.name} ({retailer.region})
-                      </SelectItem>
-                    ))}
+                    {isLoading ? (
+                      <SelectItem value="loading-retailers" disabled>Loading retailers...</SelectItem>
+                    ) : retailers.length === 0 ? (
+                      <SelectItem value="no-retailers" disabled>No retailers found</SelectItem>
+                    ) : (
+                      retailers.map((retailer) => (
+                        <SelectItem key={retailer.id} value={retailer.id}>
+                          {retailer.name} ({retailer.region})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -216,145 +221,102 @@ export function DistributeKeysSection() {
                 <Input
                   id="quantity"
                   type="number"
+                  placeholder="e.g., 100"
                   value={newDistribution.quantity}
                   onChange={(e) => setNewDistribution({ ...newDistribution, quantity: e.target.value })}
-                  placeholder="Number of keys"
+                  disabled={isSubmitting}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="batchNumber">Source Batch</Label>
-                <Select
+                <Label htmlFor="batchNumber">Batch Number</Label>
+                <Input
+                  id="batchNumber"
+                  placeholder="e.g., BN-2024-001"
                   value={newDistribution.batchNumber}
-                  onValueChange={(value) => setNewDistribution({ ...newDistribution, batchNumber: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select batch" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SS-2024-001">SS-2024-001 (2,500 keys)</SelectItem>
-                    <SelectItem value="SS-2024-002">SS-2024-002 (1,800 keys)</SelectItem>
-                    <SelectItem value="SS-2024-003">SS-2024-003 (3,200 keys)</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(e) => setNewDistribution({ ...newDistribution, batchNumber: e.target.value })}
+                  disabled={isSubmitting}
+                />
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <Button
-                onClick={handleDistribute}
-                className="bg-gradient-to-r from-electric-orange to-electric-pink hover:from-electric-orange/80 hover:to-electric-pink/80 text-white"
-              >
-                Distribute Keys
-              </Button>
-              <Button variant="outline" onClick={() => setIsDistributing(false)}>
-                Cancel
-              </Button>
-            </div>
+            <Button onClick={handleDistribute} disabled={isSubmitting} className="w-full md:w-auto bg-gradient-to-r from-electric-green to-electric-cyan hover:from-electric-green/80 hover:to-electric-cyan/80 text-white">
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              Distribute Keys
+            </Button>
           </CardContent>
         )}
       </Card>
 
-      {/* Distribution List */}
+      {/* Recent Distributions Table */}
       <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <div className="rounded-full p-2 bg-gradient-to-r from-electric-purple to-electric-blue">
-              <Users className="h-5 w-5 text-white" />
+            <div className="rounded-full p-2 bg-gradient-to-r from-electric-blue to-electric-purple">
+              <Users className="h-4 w-4 text-white" />
             </div>
-            <span className="bg-gradient-to-r from-electric-purple to-electric-blue bg-clip-text text-transparent">
-              Distribution History ({distributions.length})
+            <span className="bg-gradient-to-r from-electric-blue to-electric-purple bg-clip-text text-transparent">
+              Recent Distributions
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border overflow-hidden">
+          {currentDistributions.length === 0 && !isLoading ? (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8">No distributions found.</p>
+          ) : (
             <Table>
               <TableHeader>
-                <TableRow className="bg-gradient-to-r from-electric-purple/5 to-electric-blue/5">
+                <TableRow>
                   <TableHead>Retailer</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead>Batch</TableHead>
                   <TableHead>Region</TableHead>
+                  <TableHead className="text-right">Quantity</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Batch No.</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentDistributions.map((distribution) => (
-                  <TableRow key={distribution.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50">
+                {currentDistributions.map((dist) => (
+                  <TableRow key={dist.id}>
+                    <TableCell className="font-medium">{dist.retailerName}</TableCell>
+                    <TableCell>{dist.region}</TableCell>
+                    <TableCell className="text-right">{dist.quantity.toLocaleString()}</TableCell>
+                    <TableCell>{new Date(dist.distributedDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{dist.batchNumber}</TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{distribution.retailerName}</div>
-                        <div className="text-sm text-muted-foreground">{distribution.retailerId}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-center">
-                        <div className="font-medium">{distribution.quantity.toLocaleString()}</div>
-                        <div className="text-xs text-muted-foreground">keys</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-gradient-to-r from-electric-blue/10 to-electric-purple/10">
-                        {distribution.batchNumber}
+                      <Badge className={getStatusColor(dist.status)}>
+                        {getStatusIcon(dist.status)}
+                        <span className="ml-1.5">{dist.status.charAt(0).toUpperCase() + dist.status.slice(1)}</span>
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-gradient-to-r from-electric-green/10 to-electric-cyan/10">
-                        {distribution.region}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(distribution.distributedDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(distribution.status)}>
-                        {getStatusIcon(distribution.status)}
-                        <span className="ml-1 capitalize">{distribution.status}</span>
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        {distribution.status === "pending" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStatusUpdate(distribution.id, "sent")}
-                          >
-                            Mark Sent
-                          </Button>
-                        )}
-                        {distribution.status === "sent" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStatusUpdate(distribution.id, "delivered")}
-                          >
-                            Mark Delivered
-                          </Button>
-                        )}
-                        {distribution.status === "delivered" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleStatusUpdate(distribution.id, "confirmed")}
-                          >
-                            Confirm
-                          </Button>
-                        )}
-                      </div>
+                    <TableCell className="text-right">
+                      <Select
+                        value={dist.status}
+                        onValueChange={(newStatus: Distribution["status"]) => handleStatusUpdate(dist.id, newStatus)}
+                      >
+                        <SelectTrigger className="h-8 w-[120px] text-xs">
+                          <SelectValue placeholder="Update Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="sent">Sent</SelectItem>
+                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
-
-          {/* Custom Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            className="mt-6"
-          />
+          )}
+          {totalPages > 1 && (
+            <Pagination
+              className="mt-6"
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(page) => setCurrentPage(page)}
+            />
+          )}
         </CardContent>
       </Card>
     </div>

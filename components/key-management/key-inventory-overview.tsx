@@ -1,52 +1,111 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Package, Download, Send, AlertTriangle, TrendingUp } from "lucide-react"
-
-const inventoryStats = [
-  {
-    title: "Total Inventory",
-    value: 25847,
-    icon: Package,
-    color: "from-electric-purple to-electric-blue",
-    change: "+2,500 this week",
-    changeType: "positive",
-  },
-  {
-    title: "Received from SS",
-    value: 15420,
-    icon: Download,
-    color: "from-electric-green to-electric-cyan",
-    change: "+1,200 today",
-    changeType: "positive",
-  },
-  {
-    title: "Distributed",
-    value: 12847,
-    icon: Send,
-    color: "from-electric-orange to-electric-pink",
-    change: "850 pending",
-    changeType: "neutral",
-  },
-  {
-    title: "Available",
-    value: 2573,
-    icon: AlertTriangle,
-    color: "from-electric-pink to-electric-purple",
-    change: "Low stock alert",
-    changeType: "warning",
-  },
-]
+import { Package, Download, Send, AlertTriangle, TrendingUp, Loader2 } from "lucide-react"
+import { getKeyStats, KeyStats } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 export function KeyInventoryOverview() {
-  const totalKeys = 25847
-  const distributedKeys = 12847
-  const distributionPercentage = (distributedKeys / totalKeys) * 100
+  const [keyStats, setKeyStats] = useState<KeyStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchKeyStats = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const response = await getKeyStats()
+        setKeyStats(response.data)
+      } catch (err: any) {
+        console.error("Error fetching key stats:", err)
+        setError(err.response?.data?.message || "Failed to fetch key statistics. Please try again.")
+        toast({
+          title: "Error",
+          description: err.response?.data?.message || "Failed to fetch key statistics.",
+          variant: "destructive",
+        })
+      }
+      setIsLoading(false)
+    }
+
+    fetchKeyStats()
+  }, [toast])
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-electric-blue" />
+        <p className="ml-2 text-muted-foreground">Loading key statistics...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64 bg-red-50 dark:bg-red-900/10 p-4 rounded-lg border border-red-200 dark:border-red-700">
+        <AlertTriangle className="h-8 w-8 text-red-500 dark:text-red-400" />
+        <p className="mt-2 text-center text-red-700 dark:text-red-300">Error: {error}</p>
+        <p className="text-xs text-muted-foreground mt-1">Please check your connection or try refreshing the page.</p>
+      </div>
+    )
+  }
+
+  if (!keyStats) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64 bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-lg border border-yellow-200 dark:border-yellow-700">
+        <AlertTriangle className="h-8 w-8 text-yellow-500 dark:text-yellow-400" />
+        <p className="mt-2 text-center text-yellow-700 dark:text-yellow-300">No key statistics available at the moment.</p>
+      </div>
+    )
+  }
+
+  const inventoryDisplayStats = [
+    {
+      title: "Total Inventory",
+      value: keyStats.totalInventory,
+      icon: Package,
+      color: "from-electric-purple to-electric-blue",
+      change: `${keyStats.receivedFromSs.thisWeek >= 0 ? '+' : ''}${keyStats.receivedFromSs.thisWeek.toLocaleString()} this week`,
+      changeType: keyStats.receivedFromSs.thisWeek >= 0 ? "positive" : "negative",
+    },
+    {
+      title: "Received from SS",
+      value: keyStats.receivedFromSs.total,
+      icon: Download,
+      color: "from-electric-green to-electric-cyan",
+      // Assuming no specific 'today' field for received from SS in new API, using thisWeek as an example
+      change: `${keyStats.receivedFromSs.thisWeek >= 0 ? '+' : ''}${keyStats.receivedFromSs.thisWeek.toLocaleString()} this week`,
+      changeType: "positive", 
+    },
+    {
+      title: "Distributed",
+      value: keyStats.distributed.total,
+      icon: Send,
+      color: "from-electric-orange to-electric-pink",
+      change: `${keyStats.distributed.pending.toLocaleString()} pending`,
+      changeType: "neutral",
+    },
+    {
+      title: "Available",
+      value: keyStats.available.total,
+      icon: keyStats.available.lowStockAlert ? AlertTriangle : Package, // Show alert icon if low stock
+      color: keyStats.available.lowStockAlert ? "from-red-500 to-pink-500" : "from-electric-blue to-electric-green",
+      change: keyStats.available.lowStockAlert || `${keyStats.available.total.toLocaleString()} in stock`,
+      changeType: keyStats.available.lowStockAlert ? "warning" : "positive",
+    },
+  ]
+
+  const { distributionProgress, distributed, remaining, total } = keyStats.keyDistributionOverview
 
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {inventoryStats.map((stat, index) => (
+        {inventoryDisplayStats.map((stat, index) => (
           <Card
             key={index}
             className="relative overflow-hidden border-0 bg-gradient-to-br from-white/50 to-gray-50/50 dark:from-gray-900/50 dark:to-gray-800/50 hover:shadow-xl transition-all duration-300 hover:scale-105"
@@ -69,7 +128,9 @@ export function KeyInventoryOverview() {
                       ? "text-electric-green"
                       : stat.changeType === "warning"
                         ? "text-electric-orange"
-                        : "text-muted-foreground"
+                        : stat.changeType === "negative"
+                          ? "text-red-500"
+                          : "text-muted-foreground"
                   }`}
                 />
                 <p
@@ -78,7 +139,9 @@ export function KeyInventoryOverview() {
                       ? "text-electric-green"
                       : stat.changeType === "warning"
                         ? "text-electric-orange"
-                        : "text-muted-foreground"
+                        : stat.changeType === "negative"
+                          ? "text-red-500"
+                          : "text-muted-foreground"
                   }`}
                 >
                   {stat.change}
@@ -101,28 +164,30 @@ export function KeyInventoryOverview() {
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Distribution Progress</span>
-              <span className="text-sm font-bold">{distributionPercentage.toFixed(1)}%</span>
+        <CardContent className="space-y-4">
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Distribution Progress: <span className="font-bold text-electric-blue dark:text-electric-cyan">{distributionProgress.toFixed(1)}%</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {distributed.toLocaleString()} / {total.toLocaleString()} Keys
+              </p>
             </div>
-            <Progress value={distributionPercentage} className="h-3" />
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="p-3 rounded-lg bg-gradient-to-r from-electric-green/10 to-electric-cyan/10">
-                <div className="text-lg font-bold text-electric-green">{distributedKeys.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">Distributed</div>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-r from-electric-orange/10 to-electric-pink/10">
-                <div className="text-lg font-bold text-electric-orange">
-                  {(totalKeys - distributedKeys).toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">Remaining</div>
-              </div>
-              <div className="p-3 rounded-lg bg-gradient-to-r from-electric-purple/10 to-electric-blue/10">
-                <div className="text-lg font-bold text-electric-purple">{totalKeys.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">Total</div>
-              </div>
+            <Progress value={distributionProgress} className="w-full h-3 bg-gray-200 dark:bg-gray-700 [&>div]:bg-gradient-to-r [&>div]:from-electric-blue [&>div]:to-electric-purple" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Distributed</p>
+              <p className="text-lg font-semibold text-electric-green">{distributed.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Remaining</p>
+              <p className="text-lg font-semibold text-electric-orange">{remaining.toLocaleString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total in Batch</p>
+              <p className="text-lg font-semibold text-electric-purple">{total.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>

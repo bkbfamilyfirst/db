@@ -13,6 +13,11 @@ export function RetailerManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [filterStatus, setFilterStatus] = useState("all")
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  const handleRetailerAdded = () => {
+    setRefreshTrigger(prev => prev + 1)
+  }
 
   return (
     <div className="space-y-6 mt-6">
@@ -77,15 +82,15 @@ export function RetailerManagement() {
             </Button>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Retailer List */}
-      <RetailerList searchTerm={searchTerm} filterStatus={filterStatus} />
-
-
+      </Card>      {/* Retailer List */}
+      <RetailerList searchTerm={searchTerm} filterStatus={filterStatus} refreshTrigger={refreshTrigger} />
 
       {/* Add Retailer Dialog */}
-      <AddRetailerDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} />
+      <AddRetailerDialog 
+        open={isAddDialogOpen} 
+        onOpenChange={setIsAddDialogOpen}
+        onRetailerAdded={handleRetailerAdded}
+      />
     </div>
   )
 }
