@@ -44,7 +44,8 @@ export function PersonalInformation() {
                     variant: "destructive",
                     title: "Error",
                     description: "Could not load profile data.",
-                })            } finally {
+                })            
+            } finally {
                 setLoading(false)
             }
         }

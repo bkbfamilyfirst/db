@@ -127,16 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []); // Empty dependency array to run only once
 
   const handleLogin = async (credentials: LoginCredentials) => {
-    setIsLoading(true);
     try {
       const response = await login(credentials);
       setUser(response.user);
+      // Don't set loading here, let the redirect happen naturally
       router.push('/');
     } catch (error) {
       console.error('Login failed:', error);
-      throw error;
-    } finally {
+      // Ensure loading is false on error so user can try again
       setIsLoading(false);
+      throw error;
     }
   };
 

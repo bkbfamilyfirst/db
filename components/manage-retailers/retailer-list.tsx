@@ -57,20 +57,20 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
   const { toast } = useToast()
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(5)
-
-  // Function to map API retailer to UI format
-  const mapRetailerToUI = (retailer: Retailer): UIRetailer => ({
-    id: retailer._id,
-    name: retailer.name,
-    email: retailer.email,
-    phone: retailer.phone,
-    region: retailer.location || 'Unknown',
-    status: retailer.status === 'blocked' ? 'blocked' : 'active',
-    keysAssigned: retailer.assignedKeys,
-    activations: retailer.activations || 0,
-    joinDate: retailer.createdAt,
-  })
+  const [itemsPerPage, setItemsPerPage] = useState(5)  // Function to map API retailer to UI format
+  const mapRetailerToUI = (retailer: Retailer): UIRetailer => {
+    return {
+      id: retailer._id,
+      name: retailer.name,
+      email: retailer.email,
+      phone: retailer.phone,
+      region: retailer.address || 'Unknown',
+      status: retailer.status === 'blocked' ? 'blocked' : 'active',
+      keysAssigned: retailer.assignedKeys,
+      activations: retailer.activations || 0,
+      joinDate: retailer.createdAt,
+    }
+  }
 
   // Fetch retailers from API
   useEffect(() => {
@@ -78,11 +78,9 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
       try {
         setIsLoading(true)
         setError(null)
-        
-        const response = await getRetailerList({
+          const response = await getRetailerList({
           search: searchTerm || undefined,
-          status: filterStatus === 'all' ? undefined : filterStatus,
-        })
+          status: filterStatus === 'all' ? undefined : filterStatus,        })
         
         const mappedRetailers = response.retailers.map(mapRetailerToUI)
         setRetailers(mappedRetailers)
@@ -176,17 +174,15 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
         title: "Error",
         description: "Failed to delete retailer",
         variant: "destructive",
-      })
-    }
+      })    }
   }
 
   const handleUpdateRetailer = async (updatedRetailer: UIRetailer) => {
     try {
       await updateRetailer(updatedRetailer.id, {
         name: updatedRetailer.name,
-        email: updatedRetailer.email,
         phone: updatedRetailer.phone,
-        location: updatedRetailer.region,
+        address: updatedRetailer.region, // Map UI region to backend address field
       })
       
       setRetailers((prev) => prev.map((retailer) => 
@@ -448,16 +444,14 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
       <EditRetailerDialog
         retailer={editingRetailer}
         open={!!editingRetailer}
-        onOpenChange={(open) => !open && setEditingRetailer(null)}
-        onUpdate={handleUpdateRetailer}
-      />
-
-      {/* Assign Keys Dialog */}
+        onOpenChangeAction={(open) => !open && setEditingRetailer(null)}
+        onUpdateAction={handleUpdateRetailer}
+      />      {/* Assign Keys Dialog */}
       <AssignKeysDialog
         retailer={assigningKeysRetailer}
         open={!!assigningKeysRetailer}
-        onOpenChange={(open) => !open && setAssigningKeysRetailer(null)}
-        onAssign={handleAssignKeys}
+        onOpenChangeAction={(open) => !open && setAssigningKeysRetailer(null)}
+        onAssignAction={handleAssignKeys}
       />
     </>
   )

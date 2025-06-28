@@ -155,6 +155,39 @@ export function DistributeKeysSection() {
     }
   }
 
+  const getAvailableStatuses = (currentStatus: Distribution["status"]) => {
+    const allStatuses = [
+      { value: "pending", label: "Pending" },
+      { value: "confirmed", label: "Confirmed" },
+      { value: "sent", label: "Sent" },
+      { value: "delivered", label: "Delivered" }
+    ];
+
+    // Always allow reset to pending
+    const availableStatuses = [allStatuses[0]]; // pending
+
+    switch (currentStatus) {
+      case "pending":
+        // From pending, can go to confirmed, sent, or delivered
+        availableStatuses.push(allStatuses[1], allStatuses[2], allStatuses[3]);
+        break;
+      case "confirmed":
+        // From confirmed, can go to sent or delivered
+        availableStatuses.push(allStatuses[1], allStatuses[2], allStatuses[3]);
+        break;
+      case "sent":
+        // From sent, can go to delivered
+        availableStatuses.push(allStatuses[1], allStatuses[2], allStatuses[3]);
+        break;
+      case "delivered":
+        // From delivered, can only reset to pending or stay delivered
+        availableStatuses.push(allStatuses[3]);
+        break;
+    }
+
+    return availableStatuses;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -167,7 +200,7 @@ export function DistributeKeysSection() {
   return (
     <div className="space-y-6">
       {/* Distribute Keys Form */}
-      <Card className="border-0 bg-gradient-to-br from-electric-orange/5 to-electric-pink/5">
+      {/* <Card className="border-0 bg-gradient-to-br from-electric-orange/5 to-electric-pink/5">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -244,7 +277,7 @@ export function DistributeKeysSection() {
             </Button>
           </CardContent>
         )}
-      </Card>
+      </Card> */}
 
       {/* Recent Distributions Table */}
       <Card className="border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -262,7 +295,7 @@ export function DistributeKeysSection() {
           {currentDistributions.length === 0 && !isLoading ? (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8">No distributions found.</p>
           ) : (
-            <Table>
+            <Table>              
               <TableHeader>
                 <TableRow>
                   <TableHead>Retailer</TableHead>
@@ -271,7 +304,6 @@ export function DistributeKeysSection() {
                   <TableHead>Date</TableHead>
                   <TableHead>Batch No.</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,28 +313,11 @@ export function DistributeKeysSection() {
                     <TableCell>{dist.region}</TableCell>
                     <TableCell className="text-right">{dist.quantity.toLocaleString()}</TableCell>
                     <TableCell>{new Date(dist.distributedDate).toLocaleDateString()}</TableCell>
-                    <TableCell>{dist.batchNumber}</TableCell>
-                    <TableCell>
+                    <TableCell>{dist.batchNumber}</TableCell>                    <TableCell>
                       <Badge className={getStatusColor(dist.status)}>
                         {getStatusIcon(dist.status)}
                         <span className="ml-1.5">{dist.status.charAt(0).toUpperCase() + dist.status.slice(1)}</span>
                       </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Select
-                        value={dist.status}
-                        onValueChange={(newStatus: Distribution["status"]) => handleStatusUpdate(dist.id, newStatus)}
-                      >
-                        <SelectTrigger className="h-8 w-[120px] text-xs">
-                          <SelectValue placeholder="Update Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="sent">Sent</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}

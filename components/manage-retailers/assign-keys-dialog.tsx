@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Key, Package, AlertCircle } from "lucide-react"
+import { transferKeysToRetailer, type TransferKeysData } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 interface Retailer {
   id: string
@@ -32,27 +34,68 @@ interface Retailer {
 interface AssignKeysDialogProps {
   retailer: Retailer | null
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onAssign: (retailerId: string, keyCount: number) => void
+  onOpenChangeAction: (open: boolean) => void
+  onAssignAction: (retailerId: string, keyCount: number) => void
 }
 
-export function AssignKeysDialog({ retailer, open, onOpenChange, onAssign }: AssignKeysDialogProps) {
+export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignAction }: AssignKeysDialogProps) {
   const [keyCount, setKeyCount] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  // Clear form and error when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setKeyCount("")
+      setError(null)
+    }
+  }, [open])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!retailer || !keyCount) return
 
+    const keysToTransfer = Number.parseInt(keyCount)
+    if (isNaN(keysToTransfer) || keysToTransfer <= 0) {
+      setError("Please enter a valid number of keys")
+      return
+    }
+
     setIsLoading(true)
+    setError(null)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const transferData: TransferKeysData = {
+        retailerId: retailer.id,
+        keysToTransfer: keysToTransfer,
+        notes: `Keys assigned to ${retailer.name}`,
+      }
 
-    onAssign(retailer.id, Number.parseInt(keyCount))
-    setKeyCount("")
-    setIsLoading(false)
-    onOpenChange(false)
+      const response = await transferKeysToRetailer(transferData)
+        // Success - update the UI and close dialog
+      onAssignAction(retailer.id, keysToTransfer)
+      setKeyCount("")
+      
+      toast({
+        title: "Success",
+        description: `Successfully assigned ${keysToTransfer} keys to ${retailer.name}`,
+      })
+      
+      onOpenChangeAction(false)
+    } catch (error: any) {
+      console.error('Error assigning keys:', error)
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to assign keys'
+      setError(errorMessage)
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (!retailer) return null
@@ -61,7 +104,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChange, onAssign }: Ass
   const requestedKeys = Number.parseInt(keyCount) || 0
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -107,16 +150,19 @@ export function AssignKeysDialog({ retailer, open, onOpenChange, onAssign }: Ass
             <Label htmlFor="keyCount" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Number of Keys to Assign
-            </Label>
-            <Input
+            </Label>            <Input
               id="keyCount"
               type="number"
               min="1"
               max={availableKeys}
               value={keyCount}
-              onChange={(e) => setKeyCount(e.target.value)}
+              onChange={(e) => {
+                setKeyCount(e.target.value)
+                setError(null) // Clear error when user starts typing
+              }}
               placeholder="Enter number of keys"
               required
+              disabled={isLoading}
             />
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Available in inventory: {availableKeys.toLocaleString()}</span>
@@ -135,11 +181,19 @@ export function AssignKeysDialog({ retailer, open, onOpenChange, onAssign }: Ass
               <div className="text-sm text-muted-foreground">
                 {retailer.name} will have {retailer.keysAssigned + requestedKeys} total keys after assignment
               </div>
+            </div>          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <AlertCircle className="h-4 w-4" />
+                <span className="text-sm font-medium">{error}</span>
+              </div>
             </div>
           )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter>            <Button type="button" variant="outline" onClick={() => onOpenChangeAction(false)}>
               Cancel
             </Button>
             <Button

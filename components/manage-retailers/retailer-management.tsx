@@ -85,10 +85,9 @@ export function RetailerManagement() {
       </Card>      {/* Retailer List */}
       <RetailerList searchTerm={searchTerm} filterStatus={filterStatus} refreshTrigger={refreshTrigger} />
 
-      {/* Add Retailer Dialog */}
-      <AddRetailerDialog 
+      {/* Add Retailer Dialog */}      <AddRetailerDialog 
         open={isAddDialogOpen} 
-        onOpenChange={setIsAddDialogOpen}
+        onOpenChangeAction={setIsAddDialogOpen}
         onRetailerAdded={handleRetailerAdded}
       />
     </div>

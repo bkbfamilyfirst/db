@@ -21,16 +21,16 @@ import { useToast } from "@/hooks/use-toast"
 
 interface AddRetailerDialogProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
+  onOpenChangeAction: (open: boolean) => void
   onRetailerAdded?: () => void
 }
 
-export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRetailerDialogProps) {
+export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }: AddRetailerDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
-    location: "",
+    address: "",
     assignedKeys: "0",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -45,11 +45,22 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
     setIsSubmitting(true)
 
     try {
+      // Client-side validation
+      if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Please provide name, email, phone, and location.",
+          variant: "destructive",
+        })
+        setIsSubmitting(false)
+        return
+      }
+
       const retailerData: AddRetailerData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
-        location: formData.location || undefined,
+        address: formData.address,
         assignedKeys: parseInt(formData.assignedKeys) || 0,
       }
 
@@ -58,18 +69,17 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
       // Store the new retailer data and password
       setNewRetailer(response.retailer)
       setDefaultPassword(response.defaultPassword || "")
-      
-      // Reset form
+        // Reset form
       setFormData({
         name: "",
         email: "",
         phone: "",
-        location: "",
+        address: "",
         assignedKeys: "0",
       })
       
       // Close add dialog and show success dialog
-      onOpenChange(false)
+      onOpenChangeAction(false)
       setShowSuccessDialog(true)
       
       // Trigger refresh of retailer list
@@ -122,7 +132,7 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
   return (
     <>
       {/* Add Retailer Dialog */}
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog open={open} onOpenChange={onOpenChangeAction}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -182,18 +192,17 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
                   required
                   disabled={isSubmitting}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center gap-2">
+              </div>              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   Location
                 </Label>
                 <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
-                  placeholder="Enter location (optional)"
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  placeholder="Enter location/address"
+                  required
                   disabled={isSubmitting}
                 />
               </div>
@@ -216,7 +225,7 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={() => onOpenChangeAction(false)}
                 disabled={isSubmitting}
               >
                 Cancel
@@ -266,13 +275,12 @@ export function AddRetailerDialog({ open, onOpenChange, onRetailerAdded }: AddRe
                   
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
-                    <p className="text-sm">{newRetailer.phone}</p>
-                  </div>
+                    <p className="text-sm">{newRetailer.phone}</p>                  </div>
                   
-                  {newRetailer.location && (
+                  {newRetailer.address && (
                     <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                      <p className="text-sm">{newRetailer.location}</p>
+                      <Label className="text-sm font-medium text-muted-foreground">Address</Label>
+                      <p className="text-sm">{newRetailer.address}</p>
                     </div>
                   )}
                   

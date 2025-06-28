@@ -17,6 +17,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { login, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
       await login({ email, password });
@@ -42,17 +44,19 @@ export default function SignInPage() {
         description: "You have been signed in successfully.",
       });
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Sign in failed",
-        description: getErrorMessage(error),
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !isSubmitting) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -97,6 +101,11 @@ export default function SignInPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
+                {error}
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium">

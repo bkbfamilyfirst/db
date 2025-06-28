@@ -32,25 +32,21 @@ interface Retailer {
 interface EditRetailerDialogProps {
   retailer: Retailer | null
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onUpdate: (retailer: Retailer) => void
+  onOpenChangeAction: (open: boolean) => void
+  onUpdateAction: (retailer: Retailer) => void
 }
 
-export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: EditRetailerDialogProps) {
-  const [formData, setFormData] = useState({
+export function EditRetailerDialog({ retailer, open, onOpenChangeAction, onUpdateAction }: EditRetailerDialogProps) {  const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
-    region: "",
+    address: "",
   })
 
-  useEffect(() => {
-    if (retailer) {
+  useEffect(() => {    if (retailer) {
       setFormData({
         name: retailer.name,
-        email: retailer.email,
         phone: retailer.phone,
-        region: retailer.region,
+        address: retailer.region, // Map region back to address for the form
       })
     }
   }, [retailer])
@@ -61,11 +57,13 @@ export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: E
 
     const updatedRetailer: Retailer = {
       ...retailer,
-      ...formData,
+      name: formData.name,
+      phone: formData.phone,
+      region: formData.address, // Map address back to region for UI consistency
     }
 
-    onUpdate(updatedRetailer)
-    onOpenChange(false)
+    onUpdateAction(updatedRetailer)
+    onOpenChangeAction(false)
   }
 
   const handleInputChange = (field: string, value: string) => {
@@ -75,7 +73,7 @@ export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: E
   if (!retailer) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -102,23 +100,7 @@ export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: E
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 placeholder="Enter store name"
                 required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email Address
-              </Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="Enter email address"
-                required
-              />
-            </div>
+              />            </div>
 
             <div className="space-y-2">
               <Label htmlFor="edit-phone" className="flex items-center gap-2">
@@ -132,16 +114,14 @@ export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: E
                 placeholder="Enter phone number"
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-region" className="flex items-center gap-2">
+            </div>            <div className="space-y-2">
+              <Label htmlFor="edit-address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                Region
+                Address
               </Label>
-              <Select value={formData.region} onValueChange={(value) => handleInputChange("region", value)}>
+              <Select value={formData.address} onValueChange={(value) => handleInputChange("address", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select region" />
+                  <SelectValue placeholder="Select address" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="North">North</SelectItem>
@@ -154,7 +134,7 @@ export function EditRetailerDialog({ retailer, open, onOpenChange, onUpdate }: E
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChangeAction(false)}>
               Cancel
             </Button>
             <Button

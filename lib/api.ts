@@ -185,7 +185,7 @@ export interface Retailer {
   name: string;
   email: string;
   phone: string;
-  location?: string;
+  address?: string;
   status: 'active' | 'inactive' | 'blocked';
   assignedKeys: number;
   usedKeys: number;
@@ -201,7 +201,7 @@ export interface AddRetailerData {
   name: string;
   email: string;
   phone: string;
-  location?: string;
+  address?: string;
   status?: 'active' | 'inactive' | 'blocked';
   assignedKeys?: number;
 }
@@ -210,7 +210,7 @@ export interface UpdateRetailerData {
   name?: string;
   email?: string;
   phone?: string;
-  location?: string;
+  address?: string;
   status?: 'active' | 'inactive' | 'blocked';
 }
 
@@ -631,7 +631,7 @@ export const getRetailerList = async (params?: {
   limit?: number;
   search?: string;
   status?: string;
-  location?: string;
+  address?: string;
 }): Promise<{ message: string; retailers: Retailer[] }> => {
   try {
     const response = await api.get('/db/retailers', { params });
@@ -885,13 +885,47 @@ export const createDistribution = async (data: CreateDistributionData): Promise<
 
 export const updateDistributionStatus = async (distributionId: string, status: Distribution['status']): Promise<Distribution> => {
   try {
-    // TODO: This endpoint /distributions/:id/status is likely incorrect.
-    // It should probably use /db/distribution-history/:id/:actionType (e.g., actionType='updateStatus')
-    // and the backend needs to return the updated Distribution object, or mapping is needed.
-    console.warn("updateDistributionStatus is using /distributions/:id/status, which might be incorrect. Review against backend routes.");
-    const response: AxiosResponse<Distribution> = await api.patch(`/distributions/${distributionId}/status`, { status });
-    return response.data;
+    // Map UI status to backend action types
+    let actionType: string;
+    switch (status) {
+      case 'confirmed':
+        actionType = 'confirm';
+        break;
+      case 'sent':
+        actionType = 'mark-sent';
+        break;
+      case 'delivered':
+        actionType = 'mark-delivered';
+        break;
+      case 'pending':
+        actionType = 'reset-to-pending';
+        break;
+      default:
+        throw new Error(`Invalid status: ${status}`);
+    }
+
+    // Call the backend action endpoint
+    const response: AxiosResponse<{ message: string }> = await api.put(`/db/distribution-history/${distributionId}/${actionType}`);
+    
+    // Since the backend doesn't return the updated Distribution object, we need to construct it
+    // For now, we'll return a basic object with the updated status
+    // In practice, you might want to refetch the distribution or return more data from backend
+    const updatedDistribution: Distribution = {
+      id: distributionId,
+      status: status,
+      // Note: Other fields would need to be preserved from the original distribution
+      // This is a simplified implementation
+      retailerName: '',
+      retailerId: '',
+      quantity: 0,
+      distributedDate: '',
+      batchNumber: '',
+      region: ''
+    };
+    
+    return updatedDistribution;
   } catch (error) {
+    console.error('Error updating distribution status:', error);
     handleApiError(error);
     throw error; 
   }
@@ -926,11 +960,10 @@ export const getRetailers = async (): Promise<RetailerSelectionInfo[]> => {
     const response: AxiosResponse<{ message: string; retailers: Retailer[] }> = await api.get('/db/retailers'); 
     console.log("API response from /db/retailers:", response);
 
-    if (response.data && Array.isArray(response.data.retailers)) {
-      const retailersSelectionInfo: RetailerSelectionInfo[] = response.data.retailers.map(retailer => ({
+    if (response.data && Array.isArray(response.data.retailers)) {      const retailersSelectionInfo: RetailerSelectionInfo[] = response.data.retailers.map(retailer => ({
         id: retailer._id, // Map _id to id
         name: retailer.name,
-        region: retailer.location || 'N/A', // Map location to region, default to 'N/A'
+        region: retailer.address || 'N/A', // Map address to region, default to 'N/A'
       }));
 
       if (typeof window !== 'undefined') {
