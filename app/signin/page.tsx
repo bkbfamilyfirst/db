@@ -13,7 +13,7 @@ import { getErrorMessage } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SignInPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,7 +38,7 @@ export default function SignInPage() {
     setError(null);
 
     try {
-      await login({ email, password });
+      await login({ identifier, password });
       toast({
         title: "Welcome back!",
         description: "You have been signed in successfully.",
@@ -108,15 +108,15 @@ export default function SignInPage() {
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">
-                  Email address
+                <Label htmlFor="identifier" className="text-sm font-medium">
+                  Username, Email, or Phone
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="identifier"
+                  type="text"
+                  placeholder="Enter your username, email, or phone"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                   required
                   disabled={isSubmitting}
                   className="h-11"
@@ -157,7 +157,7 @@ export default function SignInPage() {
               <Button
                 type="submit"
                 className="w-full h-11 font-medium"
-                disabled={isSubmitting || !email || !password}
+                disabled={isSubmitting || !identifier || !password}
               >
                 {isSubmitting ? (
                   <>

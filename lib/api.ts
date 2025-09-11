@@ -78,7 +78,7 @@ api.interceptors.response.use(
 // =============================================================================
 
 export interface LoginCredentials {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -183,6 +183,7 @@ export interface ActivationSummary {
 export interface Retailer {
   _id: string;
   name: string;
+  username: string;
   email: string;
   phone: string;
   address?: string;
@@ -199,9 +200,11 @@ export interface Retailer {
 
 export interface AddRetailerData {
   name: string;
+  username: string;
   email: string;
   phone: string;
-  address?: string;
+  address: string;
+  password: string;
   status?: 'active' | 'inactive' | 'blocked';
   assignedKeys?: number;
 }
@@ -375,17 +378,15 @@ export interface RecentKeyBatchesResponse {
 export const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
   try {
     const response: AxiosResponse<LoginResponse> = await api.post('/auth/login', credentials);
-    
     // Store access token in localStorage
     if (response.data.accessToken && typeof window !== 'undefined') {
       localStorage.setItem('accessToken', response.data.accessToken);
     }
-    
     return response.data;
   } catch (error) {
-    const message = getErrorMessage(error); // Use the utility function to get a user-friendly message
-    console.error('Login error:', message, error); // Log both the friendly message and the original error
-    throw new Error(message); // Throw a new error with the processed message for the UI to catch
+    const message = getErrorMessage(error);
+    console.error('Login error:', message, error);
+    throw new Error(message);
   }
 };
 
@@ -642,7 +643,9 @@ export const getRetailerList = async (params?: {
   }
 };
 
-export const addRetailer = async (retailerData: AddRetailerData): Promise<{ message: string; retailer: Retailer; defaultPassword?: string }> => {
+export const addRetailer = async (retailerData: AddRetailerData): Promise<{
+  password: string; message: string; retailer: Retailer; defaultPassword?: string 
+}> => {
   try {
     const response = await api.post('/db/retailers', retailerData);
     return response.data;

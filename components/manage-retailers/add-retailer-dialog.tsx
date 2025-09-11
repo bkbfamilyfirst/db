@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { Loader2 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,9 +28,12 @@ interface AddRetailerDialogProps {
 export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }: AddRetailerDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
+    username: "",
     email: "",
     phone: "",
     address: "",
+    password: "",
+    status: "active",
     assignedKeys: "0",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -44,37 +47,43 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
     e.preventDefault()
     setIsSubmitting(true)
 
+    // Client-side validation
+    if (!formData.name.trim() || !formData.username.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.password.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please provide name, username, email, phone, address, and password.",
+        variant: "destructive",
+      })
+      setIsSubmitting(false)
+      return
+    }
+
+    const retailerData: AddRetailerData = {
+      name: formData.name,
+      username: formData.username,
+      email: formData.email,
+      phone: formData.phone,
+      address: formData.address,
+      password: formData.password,
+      status: formData.status as 'active' | 'inactive' | 'blocked',
+      assignedKeys: parseInt(formData.assignedKeys) || 0,
+    }
+
     try {
-      // Client-side validation
-      if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Please provide name, email, phone, and location.",
-          variant: "destructive",
-        })
-        setIsSubmitting(false)
-        return
-      }
-
-      const retailerData: AddRetailerData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        assignedKeys: parseInt(formData.assignedKeys) || 0,
-      }
-
       const response = await addRetailer(retailerData)
       
       // Store the new retailer data and password
       setNewRetailer(response.retailer)
-      setDefaultPassword(response.defaultPassword || "")
+      setDefaultPassword(response.password || "")
         // Reset form
       setFormData({
         name: "",
+        username: "",
         email: "",
         phone: "",
         address: "",
+        password: "",
+        status: "active",
         assignedKeys: "0",
       })
       
@@ -147,7 +156,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name" className="flex items-center gap-2">
                   <Store className="h-4 w-4" />
@@ -162,7 +171,20 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   disabled={isSubmitting}
                 />
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="username" className="flex items-center gap-2">
+                  <UserPlus className="h-4 w-4" />
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => handleInputChange("username", e.target.value)}
+                  placeholder="Enter username"
+                  required
+                  disabled={isSubmitting}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="email" className="flex items-center gap-2">
                   <Mail className="h-4 w-4" />
@@ -178,7 +200,6 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   disabled={isSubmitting}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="phone" className="flex items-center gap-2">
                   <Phone className="h-4 w-4" />
@@ -192,7 +213,8 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   required
                   disabled={isSubmitting}
                 />
-              </div>              <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="address" className="flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
                   Location
@@ -206,38 +228,76 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   disabled={isSubmitting}
                 />
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="password" className="flex items-center gap-2">
+                  <Eye className="h-4 w-4" />
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    placeholder="Enter password"
+                    required
+                    disabled={isSubmitting}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isSubmitting}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Initial Status</Label>
+                <Select
+                  value={formData.status}
+                  onValueChange={(value) => handleInputChange("status", value)}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="blocked">Blocked</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="assignedKeys">Initial Keys (Optional)</Label>
                 <Input
                   id="assignedKeys"
                   type="number"
-                  min="0"
+                  placeholder="e.g., 100"
                   value={formData.assignedKeys}
                   onChange={(e) => handleInputChange("assignedKeys", e.target.value)}
-                  placeholder="Number of keys to assign initially"
                   disabled={isSubmitting}
                 />
               </div>
             </div>
-
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChangeAction(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-electric-green to-electric-cyan hover:from-electric-green/80 hover:to-electric-cyan/80 text-white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Adding..." : "Add Retailer"}
-              </Button>
-            </DialogFooter>
+            <Button
+              type="submit"
+              className="w-full h-11 font-medium"
+              disabled={isSubmitting || !formData.name || !formData.username || !formData.email || !formData.phone || !formData.address || !formData.password}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Adding Retailer...
+                </>
+              ) : (
+                'Add Retailer'
+              )}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
@@ -261,88 +321,82 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
 
           {newRetailer && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-1 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="space-y-3">
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Store Name</Label>
                     <p className="text-sm font-semibold">{newRetailer.name}</p>
                   </div>
-                  
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                    <p className="text-sm">{newRetailer.username}</p>
+                  </div>
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
                     <p className="text-sm">{newRetailer.email}</p>
                   </div>
-                  
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
-                    <p className="text-sm">{newRetailer.phone}</p>                  </div>
-                  
-                  {newRetailer.address && (
-                    <div>
-                      <Label className="text-sm font-medium text-muted-foreground">Address</Label>
-                      <p className="text-sm">{newRetailer.address}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Assigned Keys</Label>
-                    <p className="text-sm">{newRetailer.assignedKeys}</p>
+                    <p className="text-sm">{newRetailer.phone}</p>
                   </div>
                   
                   <div>
-                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                    <p className="text-sm capitalize">{newRetailer.status}</p>
+                    <Label className="text-sm font-medium text-muted-foreground">Password</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={defaultPassword}
+                        readOnly
+                        className="font-mono text-sm bg-white dark:bg-gray-900"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="shrink-0"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(defaultPassword)}
+                        className="shrink-0"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              {defaultPassword && (
-                <div className="space-y-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                      Default Password
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      value={defaultPassword}
-                      readOnly
-                      className="font-mono text-sm bg-white dark:bg-gray-900"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="shrink-0"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(defaultPassword)}
-                      className="shrink-0"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                    Please share this password with the retailer. They should change it after their first login.
-                  </p>
-                </div>
-              )}
+              <div className="flex flex-row gap-4 w-full mt-2">
+                <Button
+                  type="button"
+                  variant="default"
+                  className="flex-1"
+                  onClick={() => {
+                    const creds = `Store Name: ${newRetailer.name}\nUsername: ${newRetailer.username}\nEmail: ${newRetailer.email}\nPhone: ${newRetailer.phone}\nAddress: ${newRetailer.address || ''}\nAssigned Keys: ${newRetailer.assignedKeys}\nStatus: ${newRetailer.status}\nPassword: ${defaultPassword}`;
+                    copyToClipboard(creds);
+                    toast({ title: "Copied", description: "All credentials copied to clipboard." });
+                  }}
+                >
+                  Copy All Credentials
+                </Button>
+                <Button 
+                  type="button"
+                  className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+                  onClick={handleSuccessDialogClose}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button 
-              onClick={handleSuccessDialogClose}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-            >
-              Close
-            </Button>
+            {/* Buttons moved above for side-by-side layout */}
           </DialogFooter>
         </DialogContent>
       </Dialog>
