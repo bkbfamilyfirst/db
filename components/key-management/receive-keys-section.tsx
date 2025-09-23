@@ -12,7 +12,7 @@ import { Pagination } from "@/components/ui/pagination"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu" 
 import { Download, Package, CheckCircle, Clock, AlertCircle, Plus, Loader2, XCircle, MoreHorizontal, Eye } from "lucide-react" 
 import { getRecentKeyBatches, RecentKeyBatch, RecentKeyBatchesResponse, ReceiveKeysFromSsData, handleApiError, getErrorMessage, handleKeyBatchAction, receiveKeysFromSs } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 export function ReceiveKeysSection() {
   const [batches, setBatches] = useState<RecentKeyBatch[]>([])
@@ -27,7 +27,7 @@ export function ReceiveKeysSection() {
     ssReference: "",
     notes: "",
   })
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   useEffect(() => {
     const fetchBatches = async () => {
@@ -39,16 +39,16 @@ export function ReceiveKeysSection() {
         const responseData = await getRecentKeyBatches() 
         setBatches(responseData.batches || []) // Assuming API returns { batches: RecentKeyBatch[] }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
-        setError(errorMessage)
-        toast({ title: "Error fetching batches", description: errorMessage, variant: "destructive" });
+  const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+  setError(errorMessage)
+  sonnerToast.error(`Error fetching batches: ${errorMessage}`);
         setBatches([])
       } finally {
         setIsLoading(false)
       }
     }
     fetchBatches()
-  }, [toast])
+  }, [])
 
   const totalPages = Math.ceil(batches.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
@@ -57,11 +57,11 @@ export function ReceiveKeysSection() {
 
   const handleAddBatch = async () => { // Changed to async to potentially call API
     if (!newBatch.batchNumber || !newBatch.quantity || !newBatch.ssReference) {
-      toast({ title: "Missing fields", description: "Batch Number, Quantity, and SS Reference are required.", variant: "destructive" });
+      sonnerToast.error("Batch Number, Quantity, and SS Reference are required.");
       return;
     }
     if (isNaN(parseInt(newBatch.quantity)) || parseInt(newBatch.quantity) <= 0) {
-        toast({ title: "Invalid Quantity", description: "Quantity must be a positive number.", variant: "destructive" });
+    sonnerToast.error("Quantity must be a positive number.");
         return;
     }    // This object is for the receiveKeysFromSs API, which matches the server expectation
     const batchDataForApi: ReceiveKeysFromSsData = { 
@@ -80,14 +80,14 @@ export function ReceiveKeysSection() {
       // The API returns an object like { message: string, batch: RecentKeyBatch }
       const createdApiBatch: RecentKeyBatch = response.batch; // Explicitly type createdApiBatch
 
-      setBatches(prevBatches => [createdApiBatch, ...prevBatches].sort((a, b) => new Date(b.receivedDate).getTime() - new Date(a.receivedDate).getTime()));
+  setBatches(prevBatches => [createdApiBatch, ...prevBatches].sort((a, b) => new Date(b.receivedDate).getTime() - new Date(a.receivedDate).getTime()));
       setNewBatch({ batchNumber: "", quantity: "", ssReference: "", notes: "" });
       setIsAddingBatch(false);
       setCurrentPage(1);
-      toast({ title: "Batch Added Successfully", description: `${response.message} (Batch ID: ${createdApiBatch.ssReference})` });
+  sonnerToast.success(`${response.message} (Batch ID: ${createdApiBatch.ssReference})`);
     } catch (error) {
-      handleApiError(error, "Failed to add batch");
-      toast({ title: "Error Adding Batch", description: getErrorMessage(error), variant: "destructive" });
+  handleApiError(error, "Failed to add batch");
+  sonnerToast.error(getErrorMessage(error));
     } finally {
       setIsLoading(false); // Ensure loading is turned off in finally block
     }
@@ -101,11 +101,11 @@ export function ReceiveKeysSection() {
     try {
       // Use batchId (which is the actual _id from DB) for the API call
       await handleKeyBatchAction(batchId, 'updateStatus', { status: newStatus }); 
-      toast({ title: "Status Updated", description: `Batch ${batchId} status changed to ${newStatus}.` });
+      sonnerToast.success(`Status updated: Batch ${batchId} is now ${newStatus}.`);
     } catch (error) {
       setBatches(originalBatches); // Revert on error
       handleApiError(error, "Failed to update batch status");
-      toast({ title: "Error Updating Status", description: getErrorMessage(error), variant: "destructive" });
+      sonnerToast.error(`Error updating status: ${getErrorMessage(error)}`);
     }
   }
 

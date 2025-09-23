@@ -43,7 +43,14 @@ api.interceptors.response.use(
     }
 
     // Check if the error is 401 Unauthorized and not already retrying
-    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Do not attempt to refresh token for auth endpoints (login/refresh-token)
+      const requestUrl = originalRequest?.url || '';
+      if ((requestUrl.includes('/auth/login') || requestUrl.includes('/auth/refresh-token')) && error.response?.status === 401) {
+        // Propagate 401 from auth endpoints (e.g., wrong credentials) immediately
+        return Promise.reject(error);
+      }
+
+      if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {        // Attempt to refresh the token
@@ -463,6 +470,15 @@ export const getActivationSummary = async (): Promise<ActivationSummary> => {
     const response: AxiosResponse<ActivationSummary> = await api.get('/db/dashboard/activation-summary');
     return response.data;
   } catch (error: any) {
+    // Provide a friendlier error for forbidden access (403) and log for diagnostics
+    const status = error?.response?.status;
+    if (status === 403) {
+      const friendly = 'Access denied: you do not have permission to view activation summary.';
+      console.warn('Activation summary forbidden (403):', error?.response?.data || error);
+      // Allow components to receive a clear Error with friendly message
+      throw new Error(friendly);
+    }
+
     console.error('Error fetching activation summary:', error);
     throw error;
   }

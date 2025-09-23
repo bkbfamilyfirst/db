@@ -27,7 +27,7 @@ import {
 import { EditRetailerDialog } from "./edit-retailer-dialog"
 import { AssignKeysDialog } from "./assign-keys-dialog"
 import { getRetailerList, deleteRetailer, updateRetailer, type Retailer } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 // Map API retailer to UI retailer format
 interface UIRetailer {
@@ -54,7 +54,7 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
   const [error, setError] = useState<string | null>(null)
   const [editingRetailer, setEditingRetailer] = useState<UIRetailer | null>(null)
   const [assigningKeysRetailer, setAssigningKeysRetailer] = useState<UIRetailer | null>(null)
-  const { toast } = useToast()
+  // use Sonner for toasts
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)  // Function to map API retailer to UI format
@@ -97,11 +97,7 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
         }
         
         setError(errorMessage)
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        })
+        sonnerToast.error(errorMessage)
       } finally {
         setIsLoading(false)
       }    }    
@@ -147,16 +143,9 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
         ),
       )
       
-      toast({
-        title: "Success",
-        description: `Retailer ${newStatus === 'active' ? 'unblocked' : 'blocked'} successfully`,
-      })
+      sonnerToast.success(`Retailer ${newStatus === 'active' ? 'unblocked' : 'blocked'} successfully`)
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to update retailer status",
-        variant: "destructive",
-      })
+      sonnerToast.error("Failed to update retailer status")
     }
   }
 
@@ -165,16 +154,9 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
       await deleteRetailer(retailerId)
       setRetailers((prev) => prev.filter((retailer) => retailer.id !== retailerId))
       
-      toast({
-        title: "Success",
-        description: "Retailer deleted successfully",
-      })
+      sonnerToast.success("Retailer deleted successfully")
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to delete retailer",
-        variant: "destructive",
-      })    }
+      sonnerToast.error("Failed to delete retailer")    }
   }
 
   const handleUpdateRetailer = async (updatedRetailer: UIRetailer) => {
@@ -189,16 +171,9 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
         retailer.id === updatedRetailer.id ? updatedRetailer : retailer
       ))
       
-      toast({
-        title: "Success",
-        description: "Retailer updated successfully",
-      })
+      sonnerToast.success("Retailer updated successfully")
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to update retailer",
-        variant: "destructive",
-      })
+      sonnerToast.error("Failed to update retailer")
     }
   }
 

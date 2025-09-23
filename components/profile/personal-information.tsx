@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { User, Mail, Phone, MapPin, Save, Edit, AlertCircle } from "lucide-react"
 import { getDbProfile, updateDbProfile, UpdateDbProfileData } from "../../lib/api"
 import type { DbProfile } from "../../lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 export function PersonalInformation() {
     const [isEditing, setIsEditing] = useState(false)
@@ -23,7 +23,6 @@ export function PersonalInformation() {
     })
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const { toast } = useToast()
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -40,11 +39,7 @@ export function PersonalInformation() {
                 })
             } catch (err) {
                 setError("Failed to load profile information.")
-                toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "Could not load profile data.",
-                })            
+                sonnerToast.error("Could not load profile data.")            
             } finally {
                 setLoading(false)
             }
@@ -77,10 +72,7 @@ export function PersonalInformation() {
             
             setProfile(updatedProfile)
             setIsEditing(false)
-            toast({
-                title: "Success",
-                description: "Profile updated successfully.",
-            })
+            sonnerToast.success("Profile updated successfully.")
 
             // Force page refresh to update all components with new data
             setTimeout(() => {
@@ -88,11 +80,7 @@ export function PersonalInformation() {
             }, 1000)
         } catch (err) {
             setError("Failed to save profile information.")
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "Could not save profile data.",
-            })
+            sonnerToast.error("Could not save profile data.")
         } finally {
             setLoading(false)
         }

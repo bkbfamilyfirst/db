@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { useAuth } from '@/components/auth/auth-provider';
@@ -10,7 +10,7 @@ import { Shield, Eye, EyeOff, Loader2, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { getErrorMessage } from '@/lib/api';
-import { useToast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from 'sonner';
 
 export default function SignInPage() {
   const [identifier, setIdentifier] = useState('');
@@ -20,7 +20,6 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   
   const { login, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
   const router = useRouter();
   // Redirect if already authenticated
   useEffect(() => {
@@ -39,18 +38,32 @@ export default function SignInPage() {
 
     try {
       await login({ identifier, password });
-      toast({
-        title: "Welcome back!",
-        description: "You have been signed in successfully.",
-      });
+      // use sonner for a compact success toast
+      sonnerToast.success('Welcome back! Signed in successfully.');
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      setError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Sign in failed",
-        description: errorMessage,
-      });
+      // Map common HTTP statuses to friendly messages for the user
+      const errMsg = getErrorMessage(error);
+      let friendly = 'Sign in failed. Please try again.';
+
+      // Attempt to read status code from axios error shape
+      const status = (error as any)?.response?.status;
+      if (status === 400) {
+        friendly = 'Please enter both identifier and password.';
+      } else if (status === 401) {
+        // Use the backend's messages for more context when available
+        friendly = errMsg || 'Invalid credentials. Please check your username and password.';
+      } else if (status === 429) {
+        friendly = 'Too many attempts. Please wait a moment and try again.';
+      } else if (status >= 500) {
+        friendly = 'Server error. Please try again later.';
+      } else if (errMsg) {
+        friendly = errMsg;
+      }
+
+      setError(friendly);
+
+      // Show a concise sonner toast for quick feedback
+      sonnerToast.error(friendly);
     } finally {
       setIsSubmitting(false);
     }

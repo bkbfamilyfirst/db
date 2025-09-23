@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Activity, TrendingUp, Target, Calendar, BarChart3, Loader2, AlertCircle } from "lucide-react"
 import { getActivationSummary, type ActivationSummary } from "@/lib/api"
+import { toast as sonnerToast } from 'sonner'
 
 export function RetailerActivationSummary() {
   const [activationData, setActivationData] = useState<ActivationSummary | null>(null)
@@ -21,7 +22,9 @@ export function RetailerActivationSummary() {
         setActivationData(data)
       } catch (err: any) {
         console.error('Failed to fetch activation summary:', err)        // Provide more specific error messages
-        let errorMessage = 'Failed to load activation summary'
+        // Prefer friendly message provided by API (e.g., our 403 friendly error)
+        const apiMessage = err?.message || err?.response?.data?.message
+        let errorMessage = apiMessage || 'Failed to load activation summary'
         if (err.code === 'ECONNREFUSED' || err.message?.includes('Network Error')) {
           errorMessage = 'Backend server is not available. Please ensure the backend is running on port 5000.'
         } else if (err.code === 'ECONNABORTED') {
@@ -32,6 +35,13 @@ export function RetailerActivationSummary() {
           errorMessage = 'Server error occurred'
         }
         
+        // Show a concise sonner toast for quick feedback
+        try {
+          sonnerToast.error(errorMessage)
+        } catch (e) {
+          // ignore if sonner isn't available for some reason
+        }
+
         setError(errorMessage)
       } finally {
         setIsLoading(false)

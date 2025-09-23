@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Store, Mail, Phone, MapPin, CheckCircle, Copy, Eye, EyeOff } from "lucide-react"
 import { addRetailer, type AddRetailerData, type Retailer } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 interface AddRetailerDialogProps {
   open: boolean
@@ -41,7 +41,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
   const [newRetailer, setNewRetailer] = useState<Retailer | null>(null)
   const [defaultPassword, setDefaultPassword] = useState<string>("")
   const [showPassword, setShowPassword] = useState(false)
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,11 +49,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
 
     // Client-side validation
     if (!formData.name.trim() || !formData.username.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.address.trim() || !formData.password.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Please provide name, username, email, phone, address, and password.",
-        variant: "destructive",
-      })
+      sonnerToast.error("Validation Error: Please provide name, username, email, phone, address, and password.")
       setIsSubmitting(false)
       return
     }
@@ -96,17 +92,10 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
         onRetailerAdded()
       }
 
-      toast({
-        title: "Success",
-        description: "Retailer added successfully!",
-      })
+      sonnerToast.success("Retailer added successfully!")
     } catch (error: any) {
       console.error("Error adding retailer:", error)
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to add retailer. Please try again.",
-        variant: "destructive",
-      })
+      sonnerToast.error(error.response?.data?.message || "Failed to add retailer. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -117,19 +106,12 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
   }
 
   const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast({
-        title: "Copied",
-        description: "Password copied to clipboard",
-      })
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy password",
-        variant: "destructive",
-      })
-    }
+      try {
+        await navigator.clipboard.writeText(text)
+        sonnerToast.success("Copied: Password copied to clipboard")
+      } catch (error) {
+        sonnerToast.error("Failed to copy password")
+      }
   }
 
   const handleSuccessDialogClose = () => {
@@ -379,7 +361,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   onClick={() => {
                     const creds = `Store Name: ${newRetailer.name}\nUsername: ${newRetailer.username}\nEmail: ${newRetailer.email}\nPhone: ${newRetailer.phone}\nAddress: ${newRetailer.address || ''}\nAssigned Keys: ${newRetailer.assignedKeys}\nStatus: ${newRetailer.status}\nPassword: ${defaultPassword}`;
                     copyToClipboard(creds);
-                    toast({ title: "Copied", description: "All credentials copied to clipboard." });
+                    sonnerToast.success("All credentials copied to clipboard.")
                   }}
                 >
                   Copy All Credentials

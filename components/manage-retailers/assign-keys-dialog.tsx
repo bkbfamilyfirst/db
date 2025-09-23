@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Key, Package, AlertCircle } from "lucide-react"
 import { transferKeysToRetailer, type TransferKeysData } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 interface Retailer {
   id: string
@@ -42,7 +42,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
   const [keyCount, setKeyCount] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   // Clear form and error when dialog opens/closes
   useEffect(() => {
@@ -77,10 +77,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
       onAssignAction(retailer.id, keysToTransfer)
       setKeyCount("")
       
-      toast({
-        title: "Success",
-        description: `Successfully assigned ${keysToTransfer} keys to ${retailer.name}`,
-      })
+      sonnerToast.success(`Successfully assigned ${keysToTransfer} keys to ${retailer.name}`)
       
       onOpenChangeAction(false)
     } catch (error: any) {
@@ -88,11 +85,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
       const errorMessage = error.response?.data?.message || error.message || 'Failed to assign keys'
       setError(errorMessage)
       
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      })
+      sonnerToast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }

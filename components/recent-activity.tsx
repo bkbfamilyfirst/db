@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getRecentActivities, Activity, handleApiError } from "@/lib/api" // Import API functions and types
-import { useToast } from "@/hooks/use-toast" // For showing notifications
+import { toast as sonnerToast } from 'sonner'
 import { Loader2, AlertTriangle } from "lucide-react" // For loading and error states
 
 // Activity interface is in api.ts
@@ -44,7 +44,7 @@ export function RecentActivity() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -58,18 +58,14 @@ export function RecentActivity() {
       } catch (err) {
         handleApiError(err)
         setError("Failed to load recent activities.")
-        toast({
-          title: "Error",
-          description: "Could not load recent activities.",
-          variant: "destructive",
-        })
+        sonnerToast.error("Could not load recent activities.")
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchActivities()
-  }, [toast])
+  }, [])
 
   if (isLoading) {
     return (

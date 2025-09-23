@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Package, Download, Send, AlertTriangle, TrendingUp, Loader2 } from "lucide-react"
 import { getKeyStats, KeyStats } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from 'sonner'
 
 export function KeyInventoryOverview() {
   const [keyStats, setKeyStats] = useState<KeyStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   useEffect(() => {
     const fetchKeyStats = async () => {
@@ -23,17 +23,13 @@ export function KeyInventoryOverview() {
       } catch (err: any) {
         console.error("Error fetching key stats:", err)
         setError(err.response?.data?.message || "Failed to fetch key statistics. Please try again.")
-        toast({
-          title: "Error",
-          description: err.response?.data?.message || "Failed to fetch key statistics.",
-          variant: "destructive",
-        })
+        sonnerToast.error(err.response?.data?.message || "Failed to fetch key statistics.")
       }
       setIsLoading(false)
     }
 
     fetchKeyStats()
-  }, [toast])
+  }, [])
 
   if (isLoading) {
     return (

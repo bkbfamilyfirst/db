@@ -5,7 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth/auth-provider"
 import { ClientLayout } from "@/components/client-layout"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,7 +25,8 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <ClientLayout>{children}</ClientLayout>
-            <Toaster />
+            {/* Sonner toaster for friendly single-line toasts (preferred) */}
+            <SonnerToaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

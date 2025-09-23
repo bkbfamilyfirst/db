@@ -20,7 +20,7 @@ import {
   CreateDistributionData, 
   handleApiError 
 } from "@/lib/api"
-import { useToast } from "@/hooks/use-toast" // For showing notifications
+import { toast as sonnerToast } from 'sonner'
 
 // Interface for Distribution is already in api.ts, no need to redefine
 
@@ -39,7 +39,7 @@ export function DistributeKeysSection() {
     quantity: "",
     batchNumber: "",
   })
-  const { toast } = useToast()
+  // use Sonner for toasts
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,18 +53,14 @@ export function DistributeKeysSection() {
         setRetailers(Array.isArray(retData) ? retData : []) // Ensure retData is an array
       } catch (error) {
         handleApiError(error)
-        toast({
-          title: "Error fetching data",
-          description: "Could not load distributions or retailers.",
-          variant: "destructive",
-        })
+        sonnerToast.error("Could not load distributions or retailers.")
         setRetailers([]) // Explicitly clear retailers on error
       } finally {
         setIsLoading(false)
       }
     }
     fetchData()
-  }, [toast])
+  }, [])
 
   // Calculate pagination
   const totalPages = Math.ceil(distributions.length / itemsPerPage)
@@ -74,11 +70,11 @@ export function DistributeKeysSection() {
 
   const handleDistribute = async () => {
     if (!newDistribution.retailerId || !newDistribution.quantity || !newDistribution.batchNumber) {
-      toast({ title: "Missing fields", description: "Please fill in all required fields.", variant: "destructive" })
+      sonnerToast.error("Please fill in all required fields.")
       return
     }
     if (isNaN(parseInt(newDistribution.quantity)) || parseInt(newDistribution.quantity) <= 0) {
-        toast({ title: "Invalid Quantity", description: "Quantity must be a positive number.", variant: "destructive" });
+    sonnerToast.error("Quantity must be a positive number.");
         return;
     }
 
@@ -101,10 +97,10 @@ export function DistributeKeysSection() {
       setNewDistribution({ retailerId: "", quantity: "", batchNumber: "" })
       setIsDistributingFormVisible(false)
       setCurrentPage(1)
-      toast({ title: "Success", description: "Keys distributed successfully." })
+  sonnerToast.success("Keys distributed successfully.")
     } catch (error) {
       handleApiError(error)
-      toast({ title: "Error", description: "Failed to distribute keys.", variant: "destructive" })
+  sonnerToast.error("Failed to distribute keys.")
     } finally {
       setIsSubmitting(false)
     }
@@ -116,12 +112,12 @@ export function DistributeKeysSection() {
     setDistributions((prev) => prev.map((dist) => (dist.id === distributionId ? { ...dist, status: newStatus } : dist)))
     try {
       await updateDistributionStatus(distributionId, newStatus)
-      toast({ title: "Status Updated", description: `Distribution status changed to ${newStatus}.` })
+  sonnerToast.success(`Distribution status changed to ${newStatus}.`)
     } catch (error) {
       // Revert on error
       setDistributions(originalDistributions);
       handleApiError(error)
-      toast({ title: "Error updating status", description: "Failed to update distribution status.", variant: "destructive" })
+  sonnerToast.error("Failed to update distribution status.")
     }
   }
 
