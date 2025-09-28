@@ -6,7 +6,7 @@ import { ReceivedKeysCard } from "@/components/dashboard/received-keys-card"
 import { BalanceKeysCard } from "@/components/dashboard/balance-keys-card"
 import { RetailerCountCard } from "@/components/dashboard/retailer-count-card"
 import { DailyActivationsCard } from "@/components/dashboard/daily-activations-card"
-import { getDashboardSummary, type DashboardSummary } from "@/lib/api"
+import { getDashboardSummary, getRetailerCityDistribution, type DashboardSummary } from "@/lib/api"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function Home() {
@@ -18,61 +18,57 @@ export default function Home() {
     const fetchDashboardData = async () => {
       try {
         setIsLoading(true)
-        const data = await getDashboardSummary()
+        // Fetch dashboard summary and city distribution in parallel
+        const [data, cityDist] = await Promise.all([
+          getDashboardSummary(),
+          getRetailerCityDistribution({ limit: 8 }).catch(() => null),
+        ])
+
+        // Attach city distribution to retailerCount if present
+        if (cityDist && data?.retailerCount) {
+          ;(data.retailerCount as any).cityDistribution = cityDist.topCities.map(c => ({ city: c.city, count: c.count }))
+        }
+
         setDashboardData(data)
         setError(null)
       } catch (err) {
         console.error('Failed to fetch dashboard data:', err)
         setError('Failed to load dashboard data')
-        // In development mode, use mock data
-        if (process.env.NODE_ENV === 'development') {
+          // Fallback: set blank dashboard data so UI renders with zeros
           setDashboardData({
-            receivedKeys: 25847,
+            receivedKeys: 0,
             receivedKeysDetails: {
-              changeFromLastWeek: 12.5,
-              today: 1234,
-              thisWeek: 8567,
-              lastBatch: {
-                count: 2500,
-                from: "State Supervisor",
-                date: new Date().toISOString()
-              }
+              changeFromLastWeek: 0,
+              today: 0,
+              thisWeek: 0,
+              lastBatch: null,
             },
-            balanceKeys: 15420,
-            allocationStatus: 58.0,
-            allocated: 8945,
-            available: 6475,
+            balanceKeys: 0,
+            transferStatus: 0,
+            transferredKeys: 0,
+            available: 0,
             retailerCount: {
-              totalActiveRetailers: 9945,
-              growthThisMonth: "8.3%",
+              totalActiveRetailers: 0,
+              growthThisMonth: "0%",
               regionalDistribution: {
-                north: 2847,
-                south: 3456,
-                east: 2134,
-                west: 1508
-              }
+                north: 0,
+                south: 0,
+                east: 0,
+                west: 0,
+              },
             },
             dailyActivations: {
-              today: 1247,
-              avgDaily: 1547,
-              weeklyPerformance: [
-                { day: "Mon", activations: 1247, target: 1500, percentage: 83.1 },
-                { day: "Tue", activations: 1834, target: 1800, percentage: 101.9 },
-                { day: "Wed", activations: 1456, target: 1600, percentage: 91.0 },
-                { day: "Thu", activations: 1923, target: 1900, percentage: 101.2 },
-                { day: "Fri", activations: 2156, target: 2200, percentage: 98.0 },
-                { day: "Sat", activations: 1678, target: 1700, percentage: 98.7 },
-                { day: "Sun", activations: 1234, target: 1300, percentage: 94.9 }
-              ],
+              today: 0,
+              avgDaily: 0,
+              weeklyPerformance: [],
               thisWeekSummary: {
-                count: 11528,
-                target: 12000,
-                percentage: 96.1,
-                remaining: 472
-              }
-            }
+                count: 0,
+                target: 0,
+                percentage: 0,
+                remaining: 0,
+              },
+            },
           })
-        }
       } finally {
         setIsLoading(false)
       }
@@ -118,12 +114,25 @@ export default function Home() {
 
       {/* First Row - Key Management */}
       <div className="mt-6 sm:mt-8 grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
-        <ReceivedKeysCard data={dashboardData?.receivedKeysDetails} totalKeys={dashboardData?.receivedKeys} />
+        {/* Prefer detailed receivedKeysDetails; if unavailable, map from keyStats */}
+        <ReceivedKeysCard
+          data={
+            dashboardData?.receivedKeysDetails
+            ?? (dashboardData?.keyStats ? {
+              changeFromLastWeek: 0,
+              today: dashboardData.keyStats.receivedFromSs?.total || 0,
+              thisWeek: dashboardData.keyStats.receivedFromSs?.thisWeek || 0,
+              lastBatch: null,
+            } : undefined)
+          }
+          totalKeys={dashboardData?.keyStats?.totalInventory ?? dashboardData?.receivedKeys}
+        />
         <BalanceKeysCard data={{
-          totalBalance: dashboardData?.balanceKeys || 0,
-          allocated: dashboardData?.allocated || 0,
-          available: dashboardData?.available || 0,
-          allocationStatus: dashboardData?.allocationStatus || 0
+          // Prefer backend keyStats when available
+          totalBalance: dashboardData?.keyStats?.totalInventory ?? dashboardData?.balanceKeys ?? 0,
+          transferredKeys: dashboardData?.keyStats?.distributed?.total ?? dashboardData?.transferredKeys ?? 0,
+          available: dashboardData?.keyStats?.available?.total ?? dashboardData?.available ?? 0,
+          transferStatus: dashboardData?.keyStats?.keyDistributionOverview?.distributionProgress ?? dashboardData?.transferStatus ?? 0,
         }} />
       </div>
 

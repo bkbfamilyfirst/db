@@ -37,7 +37,7 @@ export default function SignInPage() {
     setError(null);
 
     try {
-      await login({ identifier, password });
+      await login({ identifier, password, role: "db" });
       // use sonner for a compact success toast
       sonnerToast.success('Welcome back! Signed in successfully.');
     } catch (error) {

@@ -28,9 +28,26 @@ import { EditRetailerDialog } from "./edit-retailer-dialog"
 import { AssignKeysDialog } from "./assign-keys-dialog"
 import { getRetailerList, deleteRetailer, updateRetailer, type Retailer } from "@/lib/api"
 import { toast as sonnerToast } from 'sonner'
+import { changeRetailerPassword } from '@/lib/api'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Eye, EyeOff, Copy } from 'lucide-react'
 
 // Map API retailer to UI retailer format
 interface UIRetailer {
+  id: string
+  name: string
+  email: string
+  phone: string
+  address: string
+  status: "active" | "blocked"
+  keysAssigned: number
+  activations: number
+  joinDate: string
+}
+
+// Shape expected by the EditRetailerDialog (map UI -> dialog shape)
+interface DialogRetailer {
   id: string
   name: string
   email: string
@@ -52,8 +69,14 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
   const [retailers, setRetailers] = useState<UIRetailer[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [editingRetailer, setEditingRetailer] = useState<UIRetailer | null>(null)
+  const [editingRetailer, setEditingRetailer] = useState<DialogRetailer | null>(null)
   const [assigningKeysRetailer, setAssigningKeysRetailer] = useState<UIRetailer | null>(null)
+  const [confirmingChangePasswordFor, setConfirmingChangePasswordFor] = useState<UIRetailer | null>(null)
+  const [changingPasswordFor, setChangingPasswordFor] = useState<UIRetailer | null>(null)
+  const [newPassword, setNewPassword] = useState<string>('')
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false)
+  const [passwordSuccessFor, setPasswordSuccessFor] = useState<{ retailer: UIRetailer; password: string } | null>(null)
+  const [passwordErrorFor, setPasswordErrorFor] = useState<{ retailer: UIRetailer; message: string } | null>(null)
   // use Sonner for toasts
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -64,13 +87,15 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
       name: retailer.name,
       email: retailer.email,
       phone: retailer.phone,
-      region: retailer.address || 'Unknown',
+      address: retailer.address || 'Unknown',
       status: retailer.status === 'blocked' ? 'blocked' : 'active',
-      keysAssigned: retailer.assignedKeys,
+      keysAssigned: retailer.receivedKeys,
       activations: retailer.activations || 0,
       joinDate: retailer.createdAt,
     }
   }
+
+  // Removed auto-generated password: user must enter a new password manually
 
   // Fetch retailers from API
   useEffect(() => {
@@ -108,7 +133,7 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
     const matchesSearch =
       retailer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       retailer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      retailer.region.toLowerCase().includes(searchTerm.toLowerCase())
+      retailer.address.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesFilter = filterStatus === "all" || retailer.status === filterStatus
 
@@ -159,18 +184,30 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
       sonnerToast.error("Failed to delete retailer")    }
   }
 
-  const handleUpdateRetailer = async (updatedRetailer: UIRetailer) => {
+  // Receive the retailer in the dialog (DialogRetailer) shape, map back to UIRetailer
+  const handleUpdateRetailer = async (updatedDialogRetailer: DialogRetailer) => {
+    // Map dialog shape back to UI shape
+    const updatedRetailer: UIRetailer = {
+      id: updatedDialogRetailer.id,
+      name: updatedDialogRetailer.name,
+      email: updatedDialogRetailer.email,
+      phone: updatedDialogRetailer.phone,
+      address: updatedDialogRetailer.region,
+      status: updatedDialogRetailer.status,
+      keysAssigned: updatedDialogRetailer.keysAssigned,
+      activations: updatedDialogRetailer.activations,
+      joinDate: updatedDialogRetailer.joinDate,
+    }
+
     try {
       await updateRetailer(updatedRetailer.id, {
         name: updatedRetailer.name,
         phone: updatedRetailer.phone,
-        address: updatedRetailer.region, // Map UI region to backend address field
+        address: updatedRetailer.address, // Map UI address to backend address field
       })
-      
-      setRetailers((prev) => prev.map((retailer) => 
-        retailer.id === updatedRetailer.id ? updatedRetailer : retailer
-      ))
-      
+
+      setRetailers((prev) => prev.map((retailer) => (retailer.id === updatedRetailer.id ? updatedRetailer : retailer)))
+
       sonnerToast.success("Retailer updated successfully")
     } catch (error: any) {
       sonnerToast.error("Failed to update retailer")
@@ -237,7 +274,7 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
                     <TableRow className="bg-gradient-to-r from-electric-purple/5 to-electric-blue/5">
                       <TableHead>Retailer Info</TableHead>
                       <TableHead>Contact</TableHead>
-                      <TableHead>Region</TableHead>
+                      <TableHead>Address</TableHead>
                       <TableHead>Keys</TableHead>
                       <TableHead>Activations</TableHead>
                       <TableHead>Status</TableHead>
@@ -269,7 +306,7 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-gradient-to-r from-electric-blue/10 to-electric-purple/10">
-                        {retailer.region}
+                        {retailer.address}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -306,7 +343,17 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingRetailer(retailer)}>
+                          <DropdownMenuItem onClick={() => setEditingRetailer({
+                            id: retailer.id,
+                            name: retailer.name,
+                            email: retailer.email,
+                            phone: retailer.phone,
+                            region: retailer.address,
+                            status: retailer.status,
+                            keysAssigned: retailer.keysAssigned,
+                            activations: retailer.activations,
+                            joinDate: retailer.joinDate,
+                          })}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Details
                           </DropdownMenuItem>
@@ -330,6 +377,10 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
                           <DropdownMenuItem onClick={() => handleDeleteRetailer(retailer.id)} className="text-red-600">
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setConfirmingChangePasswordFor(retailer)}>
+                            <Key className="h-4 w-4 mr-2" />
+                            Change Password
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -423,11 +474,122 @@ export function RetailerList({ searchTerm, filterStatus, refreshTrigger = 0 }: R
         onUpdateAction={handleUpdateRetailer}
       />      {/* Assign Keys Dialog */}
       <AssignKeysDialog
-        retailer={assigningKeysRetailer}
+        retailer={assigningKeysRetailer ? {
+          id: assigningKeysRetailer.id,
+          name: assigningKeysRetailer.name,
+          email: assigningKeysRetailer.email,
+          phone: assigningKeysRetailer.phone,
+          region: assigningKeysRetailer.address,
+          status: assigningKeysRetailer.status,
+          keysAssigned: assigningKeysRetailer.keysAssigned,
+          activations: assigningKeysRetailer.activations,
+          joinDate: assigningKeysRetailer.joinDate,
+        } : null}
         open={!!assigningKeysRetailer}
         onOpenChangeAction={(open) => !open && setAssigningKeysRetailer(null)}
         onAssignAction={handleAssignKeys}
       />
+      {/* Confirm Change Password Dialog */}
+      <Dialog open={!!confirmingChangePasswordFor} onOpenChange={(open) => !open && setConfirmingChangePasswordFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change password?</DialogTitle>
+            <DialogDescription>Are you sure you want to change the password for {confirmingChangePasswordFor?.name}?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setConfirmingChangePasswordFor(null)}>Cancel</Button>
+              <Button onClick={() => { setChangingPasswordFor(confirmingChangePasswordFor); setConfirmingChangePasswordFor(null); setNewPassword(''); }}>Proceed</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={!!changingPasswordFor} onOpenChange={(open) => !open && setChangingPasswordFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change password for {changingPasswordFor?.name}</DialogTitle>
+            <DialogDescription>Enter a new password for the retailer. You can toggle visibility and copy the generated password.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-2">
+            <label className="text-sm text-muted-foreground">New Password</label>
+            <div className="relative">
+              <Input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} type={showNewPassword ? 'text' : 'password'} minLength={8} aria-invalid={newPassword.length > 0 && newPassword.length < 8} />
+              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 p-2" onClick={() => setShowNewPassword((s) => !s)} aria-label="Toggle password visibility">
+                {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {newPassword.length > 0 && newPassword.length < 8 && (
+              <div className="text-sm text-red-600">Password must be at least 8 characters.</div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setChangingPasswordFor(null)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!changingPasswordFor) return;
+                if (!newPassword || newPassword.trim().length === 0) {
+                  sonnerToast.error('Please enter a new password before submitting.');
+                  return;
+                }
+                if (newPassword.trim().length < 8) {
+                  sonnerToast.error('Password must be at least 8 characters long.');
+                  return;
+                }
+                try {
+                  const res = await changeRetailerPassword(changingPasswordFor.id, newPassword);
+                  setPasswordSuccessFor({ retailer: changingPasswordFor, password: newPassword });
+                  setChangingPasswordFor(null);
+                } catch (err: any) {
+                  const msg = err?.response?.data?.message || err?.message || 'Failed to change password.';
+                  setPasswordErrorFor({ retailer: changingPasswordFor, message: msg });
+                  setChangingPasswordFor(null);
+                }
+              }}>Change Password</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Success Dialog */}
+      <Dialog open={!!passwordSuccessFor} onOpenChange={(open) => !open && setPasswordSuccessFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Password Changed</DialogTitle>
+            <DialogDescription>The password was changed successfully for {passwordSuccessFor?.retailer.name}.</DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2">
+            <div className="rounded-md border p-4 flex items-center justify-between">
+              <div className="font-mono break-all">{passwordSuccessFor?.password}</div>
+              <button className="p-2 ml-4" onClick={() => { navigator.clipboard.writeText(passwordSuccessFor?.password || ''); sonnerToast.success('Copied password to clipboard'); }} aria-label="Copy password">
+                <Copy className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setPasswordSuccessFor(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Error Dialog */}
+      <Dialog open={!!passwordErrorFor} onOpenChange={(open) => !open && setPasswordErrorFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Error Changing Password</DialogTitle>
+            <DialogDescription>Unable to change password for {passwordErrorFor?.retailer.name}.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 text-sm text-red-600">{passwordErrorFor?.message}</div>
+          <DialogFooter>
+            <Button onClick={() => setPasswordErrorFor(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -93,7 +93,6 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
 
   if (!retailer) return null
 
-  const availableKeys = 5000 // This would come from your API
   const requestedKeys = Number.parseInt(keyCount) || 0
 
   return (
@@ -143,11 +142,12 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
             <Label htmlFor="keyCount" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Number of Keys to Assign
-            </Label>            <Input
+            </Label>            
+            <Input
               id="keyCount"
               type="number"
               min="1"
-              max={availableKeys}
+              // max={availableKeys}
               value={keyCount}
               onChange={(e) => {
                 setKeyCount(e.target.value)
@@ -157,7 +157,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
               required
               disabled={isLoading}
             />
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
+            {/* <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Available in inventory: {availableKeys.toLocaleString()}</span>
               {requestedKeys > availableKeys && (
                 <div className="flex items-center gap-1 text-red-500">
@@ -165,7 +165,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
                   <span>Insufficient inventory</span>
                 </div>
               )}
-            </div>
+            </div> */}
           </div>
 
           {requestedKeys > 0 && (
@@ -191,7 +191,7 @@ export function AssignKeysDialog({ retailer, open, onOpenChangeAction, onAssignA
             </Button>
             <Button
               type="submit"
-              disabled={!keyCount || requestedKeys > availableKeys || isLoading}
+              disabled={!keyCount || isLoading}
               className="bg-gradient-to-r from-electric-purple to-electric-blue hover:from-electric-purple/80 hover:to-electric-blue/80 text-white"
             >
               {isLoading ? "Assigning..." : "Assign Keys"}

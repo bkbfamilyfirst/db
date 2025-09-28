@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Edit, Store, Mail, Phone, MapPin } from "lucide-react"
 
 interface Retailer {
@@ -114,22 +113,19 @@ export function EditRetailerDialog({ retailer, open, onOpenChangeAction, onUpdat
                 placeholder="Enter phone number"
                 required
               />
-            </div>            <div className="space-y-2">
+            </div>            
+            <div className="space-y-2">
               <Label htmlFor="edit-address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Address
               </Label>
-              <Select value={formData.address} onValueChange={(value) => handleInputChange("address", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select address" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="North">North</SelectItem>
-                  <SelectItem value="South">South</SelectItem>
-                  <SelectItem value="East">East</SelectItem>
-                  <SelectItem value="West">West</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="edit-address"
+                value={formData.address}
+                onChange={(e) => handleInputChange("address", e.target.value)}
+                placeholder="Enter address"
+                required
+              />
             </div>
           </div>
 

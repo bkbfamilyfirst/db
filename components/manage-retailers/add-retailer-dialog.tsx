@@ -34,12 +34,12 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
     address: "",
     password: "",
     status: "active",
-    assignedKeys: "0",
+    receivedKeys: "0",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
   const [newRetailer, setNewRetailer] = useState<Retailer | null>(null)
-  const [defaultPassword, setDefaultPassword] = useState<string>("")
+  // No longer rely on backend for password; always use frontend state
   const [showPassword, setShowPassword] = useState(false)
   // use Sonner for toasts
 
@@ -62,7 +62,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
       address: formData.address,
       password: formData.password,
       status: formData.status as 'active' | 'inactive' | 'blocked',
-      assignedKeys: parseInt(formData.assignedKeys) || 0,
+      receivedKeys: parseInt(formData.receivedKeys) || 0,
     }
 
     try {
@@ -70,7 +70,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
       
       // Store the new retailer data and password
       setNewRetailer(response.retailer)
-      setDefaultPassword(response.password || "")
+  // Do not set defaultPassword from backend; use frontend password
         // Reset form
       setFormData({
         name: "",
@@ -80,7 +80,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
         address: "",
         password: "",
         status: "active",
-        assignedKeys: "0",
+        receivedKeys: "0",
       })
       
       // Close add dialog and show success dialog
@@ -117,7 +117,6 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false)
     setNewRetailer(null)
-    setDefaultPassword("")
     setShowPassword(false)
   }
   return (
@@ -255,13 +254,13 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assignedKeys">Initial Keys (Optional)</Label>
+                <Label htmlFor="receivedKeys">Initial Keys (Optional)</Label>
                 <Input
-                  id="assignedKeys"
+                  id="receivedKeys"
                   type="number"
                   placeholder="e.g., 100"
-                  value={formData.assignedKeys}
-                  onChange={(e) => handleInputChange("assignedKeys", e.target.value)}
+                  value={formData.receivedKeys}
+                  onChange={(e) => handleInputChange("receivedKeys", e.target.value)}
                   disabled={isSubmitting}
                 />
               </div>
@@ -327,7 +326,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                     <div className="flex items-center gap-2">
                       <Input
                         type={showPassword ? "text" : "password"}
-                        value={defaultPassword}
+                        value={formData.password}
                         readOnly
                         className="font-mono text-sm bg-white dark:bg-gray-900"
                       />
@@ -344,7 +343,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => copyToClipboard(defaultPassword)}
+                        onClick={() => copyToClipboard(formData.password)}
                         className="shrink-0"
                       >
                         <Copy className="h-4 w-4" />
@@ -359,7 +358,7 @@ export function AddRetailerDialog({ open, onOpenChangeAction, onRetailerAdded }:
                   variant="default"
                   className="flex-1"
                   onClick={() => {
-                    const creds = `Store Name: ${newRetailer.name}\nUsername: ${newRetailer.username}\nEmail: ${newRetailer.email}\nPhone: ${newRetailer.phone}\nAddress: ${newRetailer.address || ''}\nAssigned Keys: ${newRetailer.assignedKeys}\nStatus: ${newRetailer.status}\nPassword: ${defaultPassword}`;
+                    const creds = `Store Name: ${newRetailer.name}\nUsername: ${newRetailer.username}\nEmail: ${newRetailer.email}\nPhone: ${newRetailer.phone}\nAddress: ${newRetailer.address || ''}\nAssigned Keys: ${newRetailer.receivedKeys}\nStatus: ${newRetailer.status}\nPassword: ${formData.password}`;
                     copyToClipboard(creds);
                     sonnerToast.success("All credentials copied to clipboard.")
                   }}

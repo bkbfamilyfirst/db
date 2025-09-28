@@ -87,6 +87,7 @@ api.interceptors.response.use(
 export interface LoginCredentials {
   identifier: string;
   password: string;
+  role: string
 }
 
 export interface LoginResponse {
@@ -120,9 +121,11 @@ export interface DashboardSummary {
     } | null;
   };
   balanceKeys: number;
-  allocationStatus: number;
-  allocated: number;
+  transferStatus: number;
+  transferredKeys: number;
   available: number;
+  // New optional keyStats to match /db/dashboard/key-stats response shape
+  keyStats?: KeyStats;
   retailerCount: {
     totalActiveRetailers: number;
     growthThisMonth: string;
@@ -195,8 +198,8 @@ export interface Retailer {
   phone: string;
   address?: string;
   status: 'active' | 'inactive' | 'blocked';
-  assignedKeys: number;
-  usedKeys: number;
+  receivedKeys: number;
+  transferredKeys: number;
   balanceKeys?: number;
   activations?: number;
   createdAt: string;
@@ -213,7 +216,7 @@ export interface AddRetailerData {
   address: string;
   password: string;
   status?: 'active' | 'inactive' | 'blocked';
-  assignedKeys?: number;
+  receivedKeys?: number;
 }
 
 export interface UpdateRetailerData {
@@ -378,6 +381,19 @@ export interface RecentKeyBatchesResponse {
   batches: RecentKeyBatch[]; // Changed from KeyBatch[] to RecentKeyBatch[]
 }
 
+// City distribution types for dashboard
+export interface CityDistributionItem {
+  city: string | null;
+  count: number;
+}
+
+export interface CityDistributionResponse {
+  total: number;
+  topCities: CityDistributionItem[];
+  others?: number;
+  unknown?: number;
+}
+
 // =============================================================================
 // AUTHENTICATION API FUNCTIONS
 // =============================================================================
@@ -396,6 +412,18 @@ export const login = async (credentials: LoginCredentials): Promise<LoginRespons
     throw new Error(message);
   }
 };
+
+// Fetch retailer city distribution statistics
+export const getRetailerCityDistribution = async (opts?: { limit?: number }) : Promise<CityDistributionResponse> => {
+  try {
+    const res = await api.get('/db/retailers/stats/cities', { params: opts })
+    return res.data as CityDistributionResponse
+  } catch (error) {
+    const message = getErrorMessage(error)
+    console.error('Failed to fetch city distribution:', message)
+    throw new Error(message)
+  }
+}
 
 export const logout = async (): Promise<void> => {
   try {
@@ -690,6 +718,20 @@ export const deleteRetailer = async (retailerId: string): Promise<{ message: str
     return response.data;
   } catch (error) {
     console.error('Error deleting retailer:', error);
+    throw error;
+  }
+};
+
+/**
+ * Change a retailer's password.
+ * POST /db/retailers/:retailerId/change-password
+ */
+export const changeRetailerPassword = async (retailerId: string, newPassword: string): Promise<{ message: string }> => {
+  try {
+    const response = await api.post(`/db/retailers/${retailerId}/change-password`, { newPassword });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing retailer password:', error);
     throw error;
   }
 };
